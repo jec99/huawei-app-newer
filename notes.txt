@@ -1,0 +1,143 @@
+front end:
+	mapbox.js
+	AngularJS
+	D3
+
+resources:
+	mapbox tiles
+		openstreetdata tiles if that fails
+	local data
+
+back end:
+	flask
+	geoalchemy
+		postgis
+
+TO DO in the coding direction:
+- (DONE) look over flask again
+- (DONE) set up postgres
+- (DONE) set up postgis
+- (DONE) install and learn geoalchemy
+- put all the data in a postgis database
+- set up a flask app that serves basic geojson
+
+-------------------------------
+
+POSTGRES
+
+to control postgres
+$ lunchy start postgres
+$ lunchy stop postgres
+
+to create a new database
+$ createdb mydb
+
+to drop a database
+$ dropdb mydb
+
+to look at a database
+$ psql mydb
+
+to list databases
+$ psql -l
+
+connect to a databsae
+# \c database_name
+$ pqsl -d database_name
+
+database locations, almost certainly (if homebrewed)
+/usr/local/var/postgres
+
+-------------------------------
+
+POSTGIS
+
+to make a (current) postgres database into a postgis database
+# create extension postgis;
+
+comes with table called spatial_ref_sys
+# \dt
+
+creating tables
+# create table cities ( id int4 primary key, name varchar(40), the_geom geometry(POINT, 4326) );
+# insert into cities (id, the_geom, name) values (3,ST_GeomFromText('POINT(27.91162491 -33.01529)',4326),'East London,SA');
+
+after inserting some things, the geometry portions are encoded in hex
+kinda useless to us so we can decode it
+# select id, ST_AsText(the_geom), ST_X(the_geom), ST_Y(the_geom) from cities;
+
+the following gives us the distance in meters
+# select p1.name, p2.name, ST_Distance_Sphere(p1.the_geom, p2.the_geom) from cities as p1, cities as p2 where p1.id > p2.id;
+
+you can display the data in a postgis database in qgis - select
+"add new postgis connection" and fill out the form for a new connection
+accordingly
+
+-------------------------------
+
+GEOALCHEMY
+
+just use sqlalchemy, except for additional geometry types
+
+> from sqlalchemy import create_engine
+> engine = create_engine('postgresql://localhost/postgis_demo', echo=True)
+
+echo=True lets you see all the SQL generated
+
+> from sqlalchemy import Column, Integer, String
+> from sqlalchemy.ext.declarative import declarative_base
+> from geoalchemy2 import Geometry
+> Base = declarative_base()
+> # Base.query = db_session.query_property() if you want to do Lake.query(...)
+> class Lake(Base):
+> ... __tablename__ = 'lakes'
+> ... id = Column(Integer, primary_key=True)
+> ... name = Column(String)
+> ... geom = Column(Geometry('POLYGON'))
+
+we now have a class. time to create a table
+> Lake.__table__.create(engine)
+
+format for a polygon:
+> l = Lake(name='mylake', geom='POLYGON((0 0, 0 1, 1 1, 1 0, 0 0))')
+id is none since it isn't in the database or anything - we need a session
+
+> from sqlalchemy.orm import scoped_session, sessionmaker
+> db_session = scoped_session(sessionmaker(
+> ... autocommit=False,
+> ... autoflush=False,
+> ... bind=engine
+> ))
+> db_session.add(l)
+> db_session.commit()
+
+alternatively, we could do
+> db_session.add_all([a, b, c])
+
+queries:
+> Lake.query.filter(Lake.name == 'mylake')
+
+how to query datetimes:
+> query = db_session.query(User).filter(
+> ... and_(User.birthday <= '1988-01-17', User.birthday >= '1985-01-17')
+> )
+
+spatial queries:
+> from sqlalchemy import func
+> query = db_session.query(Lake).filter(
+> ... func.ST_Contains(Lake.geom, 'POINT(0 4)')
+> )
+or
+> query = db_session.query(Lake).filter(
+> ... Lake.geom.ST_Contains('POINT(0 4)')
+> )
+other queries: ST_Intersects:
+> query = db_session.query(Lake).filter(
+> ... Lake.geom.intersects('LINESTRING(1 4, 1 3'))
+> )
+
+other functions: ST_AsGeoJSON, ST_AsSVG, ST_Centroid, ST_Distance, ST_DWithin (within distance, takes two geoms, a distance, and a bool saying whether or not to use spheroid), ST_X, ST_Y, ST_Union
+
+closest objects:
+db_session.query(Lake).order_by(Lake.geom.ST_Distance('POINT(0 0)')).first()
+
