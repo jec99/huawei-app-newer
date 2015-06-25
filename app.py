@@ -6,7 +6,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 
 from database import db_session
 import models
-from models import Weather, BlockGroup, BikeStation, BikeRide,
+from models import Weather, BlockGroup, BikeStation, BikeRide, \
 	SubwayStation, SubwayDelay, Location
 
 DEBUG = True
@@ -21,3 +21,9 @@ app.config.from_object(__name__)
 def shutdown_session(exception=None):
     db_session.remove()
 
+@app.route('/')
+def show_entries():
+	return 'hi'
+
+if __name__ == '__main__':
+	app.run()

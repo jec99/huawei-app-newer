@@ -141,3 +141,12 @@ other functions: ST_AsGeoJSON, ST_AsSVG, ST_Centroid, ST_Distance, ST_DWithin (w
 closest objects:
 db_session.query(Lake).order_by(Lake.geom.ST_Distance('POINT(0 0)')).first()
 
+---------------------------------
+
+$ createdb osm
+$ psql -d osm
+# create extension postgis;
+
+populate the database with the osm data for DC
+
+do the osm-bright tutorial to make a tilemill project with dc metro osm data
