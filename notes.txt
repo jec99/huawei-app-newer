@@ -150,3 +150,26 @@ $ psql -d osm
 populate the database with the osm data for DC
 
 do the osm-bright tutorial to make a tilemill project with dc metro osm data
+
+---------------------------------
+
+IMPORTANT
+IMPORTANT
+IMPORTANT
+
+you need to go in and set the SRID of all geometry fields in the
+postgis database to 4326
+
+longlat = 4326
+spherical mercator = 3785 (this is what tilemill/mapbox use)
+
+# update block_groups set basic=ST_SetSRID(basic, 4326);
+# update block_groups set tiger=ST_SetSRID(tiger, 4326);
+# update bike_stations set geom=ST_SetSRID(geom, 4326);
+# update subway_stations set geom=ST_SetSRID(geom, 4236);
+# update locations set geom=ST_SetSRID(geom, 4236);
+
+IMPORTANT
+IMPORTANT
+IMPORTANT
+
