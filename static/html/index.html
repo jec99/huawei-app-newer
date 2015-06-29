@@ -18,6 +18,9 @@
 	<div>
 		{{ data }}
 	</div>
+	<div>
+		{{ geojson }}
+	</div>
 
 	<div id="map"></div>
 
@@ -32,6 +35,20 @@
 		}).addTo(map);
 
 		map.setMaxBounds(bounds);
+
+		var geojsonFeature = {
+			"type": "Feature",
+			"properties": {
+				"name": "bike station",
+				"popupContent": "this is a bike station"
+			},
+			"geometry": {
+				"type": "Point",
+				"coordinates": [-76.998347, 38.899972]
+			}
+		};
+
+		L.geoJson(geojsonFeature).addTo(map);
 
 	</script>
 
