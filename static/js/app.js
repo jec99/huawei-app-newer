@@ -1,3 +1,4 @@
+
 var mapApp = angular.module('mapApp', []);
 
 mapApp.factory('sampleData', function ($q, $http) {

@@ -5,11 +5,11 @@
 	<title>Basic Maps</title>
 	<script type="text/javascript" src='static/js/angular.min.js'></script>
 	<script type="text/javascript" src='static/js/app.js'></script>
-	<!-- <script type="text/javascript" src='static/js/mapbox.js'></script> -->
-	<!-- <link rel="stylesheet" type="text/css" href='static/css/mapbox.css'></link> -->
+	<script type="text/javascript" src='static/js/mapbox.js'></script>
+	<link rel="stylesheet" type="text/css" href='static/css/mapbox.css'></link>
 	<link rel="stylesheet" type="text/css" href='static/css/main.css'></link>
-	<script src='https://api.tiles.mapbox.com/mapbox.js/v2.2.1/mapbox.js'></script>
-	<link type='text/css' href='https://api.tiles.mapbox.com/mapbox.js/v2.2.1/mapbox.css' rel='stylesheet'></link>
+	<!-- // <script src='https://api.tiles.mapbox.com/mapbox.js/v2.2.1/mapbox.js'></script> -->
+	<!-- <link type='text/css' href='https://api.tiles.mapbox.com/mapbox.js/v2.2.1/mapbox.css' rel='stylesheet'></link> -->
 </head>
 <body ng-controller='MainController'>
 	<div>
@@ -19,43 +19,20 @@
 		{{ data }}
 	</div>
 
-	<div id='map'></div>
+	<div id="map"></div>
 
 	<script type="text/javascript">
 		// basic leaflet stuff here for now, will move to angular later
-		var map = L.map('map');
-		layer = L.tileLayer('http://127.0.0.1:8080/{z}/{x}/{y}.png', {
-		 attribution: 'attr',
-		});
 
-		var mapconfig = { "tilejson": "2.0.0",
-			"minzoom": 10,
-			"maxzoom": 16,
-			"center": [39.1130, -76.8123],
-			"zoom": 12,
-			touchZoom: false,
-			scrollWheelZoom: false,
-			layers: [layer]
-		};
+		var bounds = L.latLngBounds(L.latLng(38.5439, -77.5896), L.latLng(39.6268, -76.0597));
+		var map = L.map('map').setView([39.1130, -76.8123], 12);
+		L.tileLayer('http://127.0.0.1:8080/main/{z}/{x}/{y}.png', {
+			maxZoom: 17,
+			minZoon: 9
+		}).addTo(map);
 
-		var map = L.mapbox.map('map', mapconfig)
+		map.setMaxBounds(bounds);
 
-
-		// L.mapbox.accessToken = 'pk.eyJ1IjoiamNsYW5jeSIsImEiOiI3NmM1YWI1NjY2NTdhYmFkZmM2MjlhY2E1OTE2ZTllNiJ9.IeJoNeDCKSQez2T0F0ccKA';
-
-		// var tiles = L.tileLayer('https://{s}.tiles.mapbox.com/v4/jclancy.48c1d553/{z}/{x}/{y}.png?access_token=' + L.mapbox.accessToken, {attribution: 'yeah'});
-
-		// dc_long = -76.8123;
-		// dc_lat = 39.1130;
-
-		// mapVar.addLayer(tiles).setView([dc_lat, dc_long], 12);
-
-		// L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
-		//     attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
-		//     maxZoom: 18,
-		//     id: 'jclancy.48c1d553',
-		//     accessToken: 'pk.eyJ1IjoiamNsYW5jeSIsImEiOiI3NmM1YWI1NjY2NTdhYmFkZmM2MjlhY2E1OTE2ZTllNiJ9.IeJoNeDCKSQez2T0F0ccKA'
-		// }).addTo(map)
 	</script>
 
 </body>

@@ -5,6 +5,8 @@ from sqlalchemy import create_engine, case
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
+import json
+
 # from database import db_session
 import models
 from models import Weather, BlockGroup, BikeStation, BikeRide, \
@@ -44,6 +46,12 @@ def get_data():
 		'precip': w.precipitation,
 		'datetime': w.datetime.isoformat()
 	})
+
+@app.route('/data_geojson')
+def get_geojson():
+	st = db_session.query(BikeStation).first()
+	geom_json = json.loads(db_session.scalar(st.geom.ST_AsGeoJSON()))
+	return jsonify(geom_json)
 
 if __name__ == '__main__':
 	app.run()
