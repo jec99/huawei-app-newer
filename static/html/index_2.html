@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<!-- <html ng-app='map'> -->
+<html ng-app='mapApp'>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>hedhog cute</title>
+	<script type="text/javascript" src='static/js/mapbox.js'></script>
+	<script type="text/javascript" src='static/js/angular.min.js'></script>
+	<script type="text/javascript" src='static/js/app.js'></script>
+	<script type="text/javascript" src='static/js/angular-leaflet-directive.min.js'></script>
+	<link rel="stylesheet" type="text/css" href='static/css/mapbox.css'></link>
+	<link rel="stylesheet" type="text/css" href='static/css/main.css'></link>
+</head>
+<body ng-controller='MainController'>
+	<div>
+		{{ text }}
+	</div>
+	<div>
+		{{ data }}
+	</div>
+	<div>
+		{{ geojson }}
+	</div>
+
+	<leaflet tiles='tiles' center='dc' maxbounds='maxbounds' defaults='defaults' geojson='stations' style='width: 100%; top: 100px; height: 400px'></leaflet>
+
+</body>
+</html>

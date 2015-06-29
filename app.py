@@ -4,8 +4,10 @@ from flask import Flask, request, session, g, redirect, url_for, \
 from sqlalchemy import create_engine, case
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+import geoalchemy2.functions as func
 
 import json
+from geojson import Feature, FeatureCollection, dumps
 
 # from database import db_session
 import models
@@ -35,7 +37,7 @@ def shutdown_session(exception=None):
 
 @app.route('/')
 def main():
-	return send_from_directory('static/html', 'index.html')
+	return send_from_directory('static/html', 'index_2.html')
 
 @app.route('/data_sample')
 def get_data():
@@ -47,11 +49,21 @@ def get_data():
 		'datetime': w.datetime.isoformat()
 	})
 
-@app.route('/data_geojson')
+@app.route('/station_data')
 def get_geojson():
-	st = db_session.query(BikeStation).first()
-	geom_json = json.loads(db_session.scalar(st.geom.ST_AsGeoJSON()))
-	return jsonify(geom_json)
+	rets = []
+	st = db_session.query(BikeStation).limit(25)
+	for s in st:
+		geom = json.loads(db_session.scalar(s.geom.ST_AsGeoJSON()))
+		feature = Feature(
+			id=s.id,
+			geometry=geom,
+			properties={
+				'name': s.name
+			}
+		)
+		rets.append(feature)
+	return jsonify(FeatureCollection(rets))
 
 if __name__ == '__main__':
 	app.run()

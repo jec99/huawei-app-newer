@@ -28,13 +28,15 @@
 		// basic leaflet stuff here for now, will move to angular later
 
 		var bounds = L.latLngBounds(L.latLng(38.5439, -77.5896), L.latLng(39.6268, -76.0597));
-		var map = L.map('map').setView([39.1130, -76.8123], 12);
-		L.tileLayer('http://127.0.0.1:8080/main/{z}/{x}/{y}.png', {
-			maxZoom: 17,
-			minZoon: 9
-		}).addTo(map);
+		var map = L.map('map', {
+			maxBounds: bounds,
+			maxZoom: 16,
+			minZoom: 10,
+			attributionControl: false
+		}).setView([39.1130, -76.8123], 12);
+		L.tileLayer('http://127.0.0.1:8080/main/{z}/{x}/{y}.png').addTo(map);
 
-		map.setMaxBounds(bounds);
+		// map.setMaxBounds(bounds);
 
 		var geojsonFeature = {
 			"type": "Feature",
@@ -48,7 +50,8 @@
 			}
 		};
 
-		L.geoJson(geojsonFeature).addTo(map);
+		var geojsonLayer = L.geoJson().addTo(map);
+		geojsonLayer.addData(geojsonFeature);
 
 	</script>
 
