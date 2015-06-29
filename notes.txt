@@ -177,7 +177,7 @@ IMPORTANT
 
 how to start tilestache under gunicorn
 
-$ gunicorn "TileStache:WSGIServer('my_config.cfg')"
+$ gunicorn "TileStache:WSGITileServer('osm.cfg')"
 
 or alternatively (if you don't need gunicorn)
 

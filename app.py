@@ -1,5 +1,5 @@
 from flask import Flask, request, session, g, redirect, url_for, \
-	abort, render_template, flash, jsonify
+	abort, render_template, flash, jsonify, send_from_directory
 
 from sqlalchemy import create_engine, case
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -32,10 +32,10 @@ def shutdown_session(exception=None):
     db_session.remove()
 
 @app.route('/')
-def show_entries():
-	return 'hi'
+def main():
+	return send_from_directory('static/html', 'index.html')
 
-@app.route('/data')
+@app.route('/data_sample')
 def get_data():
 	w = db_session.query(Weather).first()
 	return jsonify({
