@@ -1,7 +1,7 @@
-from flask import Flask, request, session, g, redirect, url_for, \
+from flask import Flask, request, session, g, redirect, url_for, Response, \
 	abort, render_template, flash, jsonify, send_from_directory
 
-from sqlalchemy import create_engine, case
+from sqlalchemy import create_engine, case, and_, or_
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import geoalchemy2.functions as func
@@ -64,6 +64,23 @@ def get_geojson():
 		)
 		rets.append(feature)
 	return jsonify(FeatureCollection(rets))
+
+@app.route('/rides/<int:start>/<int:end>')
+def get_rides(start, end):
+	rets = []
+	rds = db_session.query(BikeRide).filter(
+		(BikeRide.start_station_id == start) & (BikeRide.end_station_id == end)
+	)
+	for r in rds:
+		feature = {
+			'id': r.id,
+			'duration': r.duration,
+			'subscribed': r.subscribed,
+			'start_date': r.start_date.isoformat(),
+			'end_date': r.end_date.isoformat()
+		}
+		rets.append(feature)
+	return Response(json.dumps(rets), mimetype='application/json')
 
 if __name__ == '__main__':
 	app.run()
