@@ -1,5 +1,5 @@
 
-var mapApp = angular.module('mapApp', ['leaflet-directive']);
+var mapApp = angular.module('mapApp', ['leaflet-directive', 'ngMaterial']);
 
 mapApp.factory('stationData', function ($q, $http) {
 	var geoJSON;
@@ -21,30 +21,83 @@ mapApp.factory('stationData', function ($q, $http) {
 	};
 });
 
-mapApp.controller('MainController', function ($scope, stationData) {
-	$scope.text = 'HELLO THIS APP HEDHOG CUTE';
+mapApp.factory('bikeDirections', function ($q, $http) {
+	return {
+		get: function (x, y) {
+			// takes in [xlng, xlat], [ylng, ylat]
+			var deferred = $q.defer();
+			console.log('started');
+			$http({
+				url: 'http://api.bikesy.com',
+				method: "GET",
+				params: {
+					lng1: x[0],
+					lat1: x[1],
+					lng2: y[0],
+					lat2: y[1],
+					hill: 'low',
+					safety: 'low',
+					format: 'json'
+				},
+				headers: {
+					'Access-Control-Allow-Origin': '*',
+					'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+					'Access-Control-Allow-Headers': 'Content-Type, X-Requested-With',
+					'X-Random-Shit':'123123123'
+				}
+			}).success(function (data, status, headers, response) {
+				deferred.resolve(data);
+			}).error(function (data, status, headers, response) {
+				deferred.reject(status);
+			});
 
-	var style = function (feature) {
-		return {
-			color: '#000',
-			opacity: 1,
-			fillColor: '#FF6600',
-			fillOpacity: 0.8,
-			weight: 1,
-			radius: 6,
-			clickable: true
+			return deferred.promise;
 		}
-	};
+	}
+});
 
+mapApp.controller('MainController', function ($scope, stationData, bikeDirections, leafletEvents) {
+
+	var x_station = [-76.998347, 38.899972];
+	var y_station = [-77.0512, 38.8561];
+
+	$scope.stations = {};
 	stationData.get().then(function (data) {
-		$scope.geojson = data.features[0];
-		$scope.stations = {
-			data: data,
-			pointToLayer: function (feature, latlng) {
-				return new L.circleMarker(latlng, style(feature));
+		// adding a bunch of markers for the stations, as opposed to geojson
+		var feature;
+		for (var i = 0; i < data.features.length; i++) {
+			feature = data.features[i];
+			$scope.stations[feature.id] = {
+				lng: feature.geometry.coordinates[0],
+				lat: feature.geometry.coordinates[1],
+				properties: feature.properties,
+				id: feature.id,
+				focus: false,
+				resetStyleOnMouseout: true,
+				// message: 'hi this is a popup',
+					// message can be text or an angular template
+				// popupAnchor:  [0, 0],
+				// popupOptions: {
+				// 	className: 'popup'
+				// },
+				icon: {
+					type: 'div',
+					className: 'marker-default',
+					iconSize: null,
+          html: '<div class="icon">S</div>'
+				}
 			}
 		}
 	});
+
+	// not working yet
+	// bikeDirections.get(x_station, y_station).then(function (data) {
+	// 	$scope.directions = data;
+	// 	console.log(data);
+	// 	console.log('yeah');
+	// }, function () {
+	// 	console.log(':(');
+	// });
 
 	angular.extend($scope, {
 		tiles: {
@@ -76,9 +129,16 @@ mapApp.controller('MainController', function ($scope, stationData) {
 		}
 	});
 
-	$scope.$on('leafletDirectiveGeoJson.click', function (ev, leafletPayload) {
-		console.log(leafletPayload.model.properties.name);
+	$scope.$on('leafletDirectiveGeoJson.click', function (ev, payload) {
+		console.log(payload.model.properties.name);
 	});
 
+	$scope.$on('leafletDirectiveMarker.click', function (ev, payload) {
+		console.log('clicked: ' + payload.model.properties.name);
+	});
+
+	$scope.$on('leafletDirectiveMap.zoomend', function (ev, payload) {
+		console.log('zoom level: ' + payload.leafletObject._zoom);
+	});
 });
 

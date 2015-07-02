@@ -6,23 +6,44 @@
 	<title>hedhog cute</title>
 	<script type="text/javascript" src='static/js/mapbox.js'></script>
 	<script type="text/javascript" src='static/js/angular.min.js'></script>
-	<script type="text/javascript" src='static/js/app.js'></script>
 	<script type="text/javascript" src='static/js/angular-leaflet-directive.min.js'></script>
 	<link rel="stylesheet" type="text/css" href='static/css/mapbox.css'></link>
 	<link rel="stylesheet" type="text/css" href='static/css/main.css'></link>
+
+	<link rel="stylesheet" href="static/css/angular-material.css"/>
+	<script type='text/javascript' src="static/js/angular-animate.js"></script>
+	<script type='text/javascript' src="static/js/angular-aria.js"></script>
+	<script type="text/javascript" src="static/js/angular-material.js"></script>
+
+	<script type="text/javascript" src='static/js/app.js'></script>
 </head>
 <body ng-controller='MainController'>
-	<div>
-		{{ text }}
-	</div>
-	<div>
-		{{ data }}
-	</div>
-	<div>
-		{{ geojson }}
-	</div>
 
-	<leaflet tiles='tiles' center='dc' maxbounds='maxbounds' defaults='defaults' geojson='stations' style='width: 100%; top: 100px; height: 400px'></leaflet>
+	<div>
+		<md-content class='md-padding'>
+			<md-tabs md-dynamic-height='false'>
+				<md-tab label='one'>
+					<md-tab-label>
+						Station Map
+					</md-tab-label>
+					<md-tab-body class='md-padding'>
+						<leaflet tiles='tiles' center='dc' markers="stations" maxbounds='maxbounds' defaults='defaults' style='width: 100%; height: 300px'></leaflet>
+					</md-tab-body>
+				</md-tab>
+
+				<md-tab label='two'>
+					<md-tab-label>
+						Station Graph
+					</md-tab-label>
+					<md-tab-body class='md-padding'>
+						<div height='400px' style='display: inline-block; background: orange; height: 400px'>
+							Hi
+						</div>
+					</md-tab-body>
+				</md-tab>
+			</md-tabs>
+		</md-content>
+	</div>
 
 </body>
 </html>

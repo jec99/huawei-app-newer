@@ -1,2 +1,57 @@
-body { margin:0; padding:0; }
-#map { position:absolute; top:200px; width:100%; height: 400px; }
+body {
+	margin: 0;
+	padding: 0;
+}
+
+#map {
+	position: absolute;
+	top: 200px;
+	width: 100%;
+	height: 600px;
+}
+
+div.marker-default div.icon {
+	position: relative;
+
+	border-radius: 50%;
+	top: -7px;
+	left: -7px;
+	width: 14px;
+	height: 14px;
+	opacity: 0.9;
+	background: #ff6600;
+
+	-webkit-transition: all 0.1s ease-in-out;
+  -moz-transition: all 0.1s ease-in-out;
+  -o-transition: all 0.1s ease-in-out;
+  -ms-transition: all 0.1s ease-in-out;
+  transition: all 0.1s ease-in-out;
+}
+
+/*
+div.marker-mouse div.icon {
+	border-radius: 50%;
+	width: 20px;
+	height: 20px;
+	opacity: 1;
+	background: #ff6600;
+	border: 1px solid #000;
+}
+*/
+
+div.marker-default div.icon:hover {
+	top: -10px;
+	left: -10px;
+	width: 20px;
+	height: 20px;
+	opacity: 1;
+	border: 1px solid #000;
+}
+
+.leaflet-control-attribution {
+	display: none;
+}
+
+[role="tabpanel"] {
+    transition: none;
+}
