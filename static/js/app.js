@@ -24,28 +24,10 @@ mapApp.factory('stationData', function ($q, $http) {
 mapApp.factory('bikeDirections', function ($q, $http) {
 	return {
 		get: function (x, y) {
-			// takes in [xlng, xlat], [ylng, ylat]
+			// takes in station id x, station id y
 			var deferred = $q.defer();
-			console.log('started');
-			$http({
-				url: 'http://api.bikesy.com',
-				method: "GET",
-				params: {
-					lng1: x[0],
-					lat1: x[1],
-					lng2: y[0],
-					lat2: y[1],
-					hill: 'low',
-					safety: 'low',
-					format: 'json'
-				},
-				headers: {
-					'Access-Control-Allow-Origin': '*',
-					'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-					'Access-Control-Allow-Headers': 'Content-Type, X-Requested-With',
-					'X-Random-Shit':'123123123'
-				}
-			}).success(function (data, status, headers, response) {
+			$http.get('/bike_station_route/' + x + '/' + y
+			).success(function (data, status, headers, response) {
 				deferred.resolve(data);
 			}).error(function (data, status, headers, response) {
 				deferred.reject(status);
@@ -84,25 +66,30 @@ mapApp.controller('MainController', function ($scope, stationData, bikeDirection
 					type: 'div',
 					className: 'marker-default',
 					iconSize: null,
-          html: '<div class="icon">S</div>'
+          html: '<div class="icon-container">B</div>'
 				}
 			}
 		}
-	});
 
-	// not working yet
-	// bikeDirections.get(x_station, y_station).then(function (data) {
-	// 	$scope.directions = data;
-	// 	console.log(data);
-	// 	console.log('yeah');
-	// }, function () {
-	// 	console.log(':(');
-	// });
+		return data;
+	}).then(function (data) {
+		// this is just a sample, obviously
+		var x_station = data.features[0].id;
+		var y_station = data.features[1].id;
+		bikeDirections.get(x_station, y_station).then(function (data) {
+			$scope.directions = data;
+			console.log(data);
+			console.log('yeah');
+		}, function () {
+			console.log(':(');
+		});
+	});
+	
 
 	angular.extend($scope, {
 		tiles: {
 			name: 'local',
-			url: 'http://127.0.0.1:8080/main/{z}/{x}/{y}.png',
+			url: 'http://127.0.0.1:8080/simple/{z}/{x}/{y}.png',
 			type: 'xyz',
 			options: {
 				attribution: ''
