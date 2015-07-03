@@ -101,15 +101,15 @@ def merge_linestrings(ls):
 	# forwards vs backwards for last string
 
 	def relative_orientation(lns1, lns2):
-		if (all(isclose(lns1[0], lns2[0]), atol=0.000001):
+		if (all(isclose(lns1[0], lns2[0]), atol=0.000001)):
 			return (1, 1)
-		elif (all(isclose(lns1[0], lns2[-1]), atol=0.000001):
+		elif (all(isclose(lns1[0], lns2[-1]), atol=0.000001)):
 			return (1, -1)
-		elif (all(isclose(lns1[-1], lns2[1]), atol=0.000001):
+		elif (all(isclose(lns1[-1], lns2[1]), atol=0.000001)):
 			return (-1, 1)
-		elif (all(isclose(lns1[-1], lns2[-1]), atol=0.000001):
+		elif (all(isclose(lns1[-1], lns2[-1]), atol=0.000001)):
 			return (-1, -1)
-		else
+		else:
 			raise Exception('Strings are incompatible.')
 
 	last_orient = relative_orientation(ls[0]['coordinates'], ls[1]['coordinates'])[0]
@@ -154,7 +154,7 @@ def fastest_route(m, n):
 	edges = [json.loads(e[0]) for e in edges if e[0]]
 	return merge_linestrings(edges)
 
-@app.route('/route/<int:start>/<ind:end>')
+@app.route('/route/<int:start>/<int:end>')
 def get_route(start, end):
 	rets = []
 
