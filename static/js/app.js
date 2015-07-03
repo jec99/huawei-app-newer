@@ -95,6 +95,20 @@ mapApp.controller('MainController', function ($scope, stationData, bikeDirection
 				attribution: ''
 			}
 		},
+		layers: {
+			baselayers: {
+				simple: {
+					name: "Simple",
+					url: 'http://127.0.0.1:8080/simple/{z}/{x}/{y}.png',
+					type: 'xyz'
+				},
+				muted: {
+					name: "Muted",
+					url: 'http://127.0.0.1:8080/muted/{z}/{x}/{y}.png',
+					type: 'xyz'
+				}
+			}
+		},
 		maxbounds: {
 			northEast: {
 				lat: 39.6268,
@@ -106,8 +120,8 @@ mapApp.controller('MainController', function ($scope, stationData, bikeDirection
 			}
 		},
 		dc: {
-			lat: 39.1130,
-			lng: -76.8123,
+			lat: 38.888928,
+			lng: -77.034136,
 			zoom: 12
 		},
 		defaults: {
