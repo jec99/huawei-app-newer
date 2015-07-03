@@ -165,7 +165,6 @@ def fastest_route(m, n):
 
 	return merge_linestrings(edges)
 
-
 @app.route('/bike_station_route/<int:start>/<int:end>')
 def get_route(start, end):
 	rets = []
