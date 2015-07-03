@@ -21,6 +21,7 @@ mapApp.factory('stationData', function ($q, $http) {
 	};
 });
 
+
 mapApp.factory('bikeDirections', function ($q, $http) {
 	return {
 		get: function (x, y) {
@@ -43,34 +44,37 @@ mapApp.controller('MainController', function ($scope, stationData, bikeDirection
 	var x_station = [-76.998347, 38.899972];
 	var y_station = [-77.0512, 38.8561];
 
-	$scope.stations = {};
+	
+
 	stationData.get().then(function (data) {
 		// adding a bunch of markers for the stations, as opposed to geojson
+
 		var feature;
+		$scope.stations = {};
+		$scope.route = {};
 		for (var i = 0; i < data.features.length; i++) {
 			feature = data.features[i];
-			$scope.stations[feature.id] = {
+			$scope.stations[feature.id] = {	
 				lng: feature.geometry.coordinates[0],
 				lat: feature.geometry.coordinates[1],
 				properties: feature.properties,
 				id: feature.id,
 				focus: false,
 				resetStyleOnMouseout: true,
-				// message: 'hi this is a popup',
+				message:feature.properties.name,
 					// message can be text or an angular template
-				// popupAnchor:  [0, 0],
-				// popupOptions: {
-				// 	className: 'popup'
-				// },
+				popupAnchor:  [0, 0],
+				popupOptions: {
+					className: 'popup'
+				},
 				icon: {
 					type: 'div',
 					className: 'marker-default',
 					iconSize: null,
-          html: '<div class="icon-container">B</div>'
+          		html: '<div class="icon-container">B</div>'
 				}
-			}
+			}	
 		}
-
 		return data;
 	}).then(function (data) {
 		// this is just a sample, obviously
@@ -86,7 +90,9 @@ mapApp.controller('MainController', function ($scope, stationData, bikeDirection
 	});
 	
 
+
 	angular.extend($scope, {
+		route: {},
 		tiles: {
 			name: 'local',
 			url: 'http://127.0.0.1:8080/simple/{z}/{x}/{y}.png',
@@ -134,7 +140,37 @@ mapApp.controller('MainController', function ($scope, stationData, bikeDirection
 		console.log(payload.model.properties.name);
 	});
 
+	var bikeStationId1;
 	$scope.$on('leafletDirectiveMarker.click', function (ev, payload) {
+		if(bikeStationId1 != undefined){
+			var bikeStationId2 = payload.model.id;
+			bikeDirections.get(bikeStationId1, bikeStationId2).then(function (data) {
+				$scope.directions = data;
+				console.log(data);
+				console.log('hit');
+
+				$scope.route= {
+					p1:{
+                        color: 'blue',
+                        weight: 3,
+                        latlngs: data.coordinates.map(function(e){
+                        	return {lat:e[1], lng:e[0]}
+                        })
+                        //,message: "insert whatever here"
+                    }
+                };
+                console.log($scope.route);
+
+
+			});
+			bikeStationId1 = undefined;
+		}
+		else{ 
+			bikeStationId1 = payload.model.id;
+			$scope.route = {}
+			console.log('first')
+		}
+		
 		console.log('clicked: ' + payload.model.properties.name);
 	});
 
