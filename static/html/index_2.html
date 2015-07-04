@@ -23,7 +23,6 @@
 	<script type="text/javascript" src='static/js/app.js'></script>
 </head>
 <body ng-controller='MainController'>
-
 	<div>
 		<md-content class='md-padding'>
 			<md-tabs md-dynamic-height='false'>
@@ -32,7 +31,7 @@
 						Station Map
 					</md-tab-label>
 					<md-tab-body class='md-padding'>
-						<leaflet layers='layers' center='dc' markers="stations" maxbounds='maxbounds' defaults='defaults' style='height: 500px'></leaflet>
+						<leaflet layers='layers' center='dc' markers="stations" paths="route" maxbounds='maxbounds' defaults='defaults'  style='width: 100%; height: 500px'></leaflet>
 					</md-tab-body>
 				</md-tab>
 
