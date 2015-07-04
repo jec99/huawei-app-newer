@@ -197,3 +197,20 @@ CONFIG = {
         'TileStache:WSGITileServer("/var/www/airportmap/tilestache.cfg")'
     ),
 }
+
+---------------------------------
+
+OSRM is an extremely fast routing service, much faster than pgRouting.
+it preprocesses data extensively, allowing for enormous speedups, and
+it doesn't have to build the graph each time it runs a query.
+
+usage:
+./osrm-routed -p 5080 ../osm_data.osrm
+
+finds nearest node to lat-lng:
+localhost:5080/locate?loc=38.888928,-77.034136
+
+finds route from one point to another:
+localhost:5080/viaroute?loc=38.888928,-77.034136&loc=38.928734,-77.003923
+
+the important part needs to be decoded with polyline (pip install polyline)
