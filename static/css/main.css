@@ -7,12 +7,17 @@ body {
 	width: 100%;
 }
 
-div.marker-default {
-	z-index: 9000 !important;
-	top: -10px;
-  left: -10px;
+.leaflet-control-attribution {
+	display: none;
 }
 
+/* MARKERS */
+
+div.marker-default {
+	z-index: 9000 !important;
+	top: -5px;
+	left: -5px;
+}
 
 div.marker-default:hover {
 	z-index: 10000 !important;
@@ -23,26 +28,25 @@ div.marker-default div.icon-container {
 	font-size: 12px;
 
 	padding-top: 2%;
-	/*padding-top: 1px;*/
 
 	border-radius: 50%;
-	width: 20px;
-	height: 20px;
+	width: 10px;
+	height: 10px;
 	opacity: 0.75;
 	background: #ff6600;
 
 	-webkit-transition: all 0.1s ease-in-out;
-  -moz-transition: all 0.1s ease-in-out;
-  -o-transition: all 0.1s ease-in-out;
-  -ms-transition: all 0.1s ease-in-out;
-  transition: all 0.1s ease-in-out;
+	-moz-transition: all 0.1s ease-in-out;
+	-o-transition: all 0.1s ease-in-out;
+	-ms-transition: all 0.1s ease-in-out;
+	transition: all 0.1s ease-in-out;
 }
 
 div.marker-default div.icon-container:hover {
 	-webkit-transform: scale(1.25);
-  -moz-transform: scale(1.25);
-  -ms-transform: scale(1.25);
-  -o-transform: scale(1.25);
+	-moz-transform: scale(1.25);
+	-ms-transform: scale(1.25);
+	-o-transform: scale(1.25);
 	transform: scale(1.25);
 	-webkit-box-shadow:inset 0px 0px 0px 1px #CC5200;
 	-moz-box-shadow:inset 0px 0px 0px 1px #CC5200;
@@ -51,6 +55,97 @@ div.marker-default div.icon-container:hover {
 	z-index: 1000;
 }
 
-.leaflet-control-attribution {
-	display: none;
+div.marker-default div.icon-container.station-clicked {
+	-webkit-box-shadow:inset 0px 0px 0px 1px #33CC33;
+	-moz-box-shadow:inset 0px 0px 0px 1px #33CC33;
+	box-shadow:inset 0px 0px 0px 1px #33CC33;
+
+	opacity: 1;
+
+	-webkit-transform: scale(1.5);
+	-moz-transform: scale(1.5);
+	-ms-transform: scale(1.5);
+	-o-transform: scale(1.5);
+	transform: scale(1.5);
+}
+
+/* TOOLTIPS */
+
+.tooltip {
+	display: inline;
+	position: relative;
+}
+
+.station-tooltip:hover:after{
+    background: #333;
+    background: rgba(0,0,0,.8);
+    border-radius: 5px;
+    bottom: 21px;
+    color: #fff;
+    content: attr(title);
+    left: -60px;
+    padding: 2px 4px;
+    position: absolute;
+    z-index: 10098;
+    width: 150px;
+	text-align: center;
+}
+
+.station-tooltip:hover:before{
+    border: solid;
+    border-color: #333 transparent;
+    border-width: 6px 6px 0 6px;
+    bottom: 15px;
+    content: "";
+    position: absolute;
+    z-index: 10099;
+}
+
+/* TABS */
+
+md-content {
+	background-color: transparent !important;
+}
+
+md-content md-tabs {
+	background: #f6f6f6;
+	border: 1px solid #e1e1e1;
+}
+
+md-content md-tabs md-tabs-canvas {
+	background: white;
+}
+
+md-content h1:first-child {
+	margin-top: 0;
+}
+
+/* CHARTS */
+
+#day-by-hour,
+#week-by-day,
+#year-by-week {
+	width: 500px;
+	height: 295px;
+	margin-right: 40px;
+}
+
+#primary-container {
+	margin: 0 auto;
+}
+
+#main-tabs-container {
+	float: left;
+	width: 1000px;
+}
+
+#charts-container {
+	float: left;
+	width: 550px;
+}
+
+#day-by-hour svg,
+#week-by-day svg,
+#year-by-week svg {
+	height: 295px;
 }

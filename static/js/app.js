@@ -1,5 +1,5 @@
 
-var mapApp = angular.module('mapApp', ['leaflet-directive', 'ngMaterial']);
+var mapApp = angular.module('mapApp', ['leaflet-directive', 'ngMaterial', 'gridshore.c3js.chart']);
 
 mapApp.factory('stationData', function ($q, $http) {
 	var geoJSON;
@@ -37,9 +37,38 @@ mapApp.factory('bikeRides', function ($q, $http) {
 
 			return deferred.promise;
 		}
-	}
+	};
 });
 
+mapApp.factory('bikeRidesSummary', function ($q, $http, $timeout) {
+	var rideData = null;
+	var oldX;
+	var oldY;
+
+	return {
+		get: function (x, y) {
+			var deferred = $q.defer();
+			if (x == oldX && y == oldY && rideData !== null) {
+				$timeout(function () {
+					deferred.resolve(rideData);
+				}, 20);
+			} else {
+				dataUrl = '/rides_summary' + (x && y ? '/' + x + '/' + y : '');
+				$http.get(dataUrl
+				).success(function (data, status, headers, response) {
+					oldX = x;
+					olyY = y;
+					rideData = data;
+					deferred.resolve(data);
+				}).error(function (data, status, headers, response) {
+					deferred.reject(status);
+				});
+			}
+
+			return deferred.promise;
+		}
+	};
+});
 
 mapApp.factory('bikeDirections', function ($q, $http) {
 	return {
@@ -58,65 +87,34 @@ mapApp.factory('bikeDirections', function ($q, $http) {
 	}
 });
 
-mapApp.controller('MainController', function ($scope, $q, bikeRides, stationData, bikeDirections, leafletEvents) {
-
-	var x_station = [-76.998347, 38.899972];
-	var y_station = [-77.0512, 38.8561];
-
-	
-
+mapApp.controller('MainController', function ($scope, $rootScope, $q, bikeRides, stationData, bikeDirections, leafletEvents) {
 	stationData.get().then(function (data) {
-		// adding a bunch of markers for the stations, as opposed to geojson
-
-		var feature;
 		$scope.stations = {};
-		$scope.route = {};
 		for (var i = 0; i < data.features.length; i++) {
-			feature = data.features[i];
+			var feature = data.features[i];
 			$scope.stations[feature.id] = {	
 				lng: feature.geometry.coordinates[0],
 				lat: feature.geometry.coordinates[1],
 				properties: feature.properties,
 				id: feature.id,
 				focus: false,
-				resetStyleOnMouseout: true,
-				message:feature.properties.name,
-					// message can be text or an angular template
-				popupAnchor:  [0, 0],
-				popupOptions: {
-					className: 'popup'
-				},
+				clicked: true,
 				icon: {
 					type: 'div',
 					className: 'marker-default',
 					iconSize: null,
-					html: '<div class="icon-container">B</div>'
+					html:
+						'<a class="tooltip station-tooltip" title="' + feature.properties.name + '">' +
+						'<div class="icon-container" id="marker_' + feature.id + '"></div>' +
+						'</a>'
 				}
-			}	
-		}
+			}
+		};
 		return data;
-	}).then(function (data) {
-		// this is just a sample, obviously
-		var x_station = data.features[0].id;
-		var y_station = data.features[1].id;
-		bikeDirections.get(x_station, y_station).then(function (data) {
-			$scope.directions = data;
-			console.log(data);
-		});
 	});
-	
-
 
 	angular.extend($scope, {
 		route: {},
-		tiles: {
-			name: 'local',
-			url: 'http://127.0.0.1:8080/simple/{z}/{x}/{y}.png',
-			type: 'xyz',
-			options: {
-				attribution: ''
-			}
-		},
 		layers: {
 			baselayers: {
 				simple: {
@@ -152,41 +150,59 @@ mapApp.controller('MainController', function ($scope, $q, bikeRides, stationData
 		}
 	});
 
-	$scope.$on('leafletDirectiveGeoJson.click', function (ev, payload) {
-		console.log(payload.model.properties.name);
-	});
-
-	var bikeStationId1 = null;
+	var selectedPath = false;
+	var station1 = null;
 	$scope.$on('leafletDirectiveMarker.click', function (ev, payload) {
+		if (station1 === null) {
+			station1 = payload.model.id;
+			$scope.route = {};
 
-		if (bikeStationId1 !== null) {
-			var bikeStationId2 = payload.model.id;
-			$q.all([
-				bikeRides.get(bikeStationId1, bikeStationId2),
-				bikeDirections.get(bikeStationId1, bikeStationId2)
-			]).then(function (data) {
-				var duration = data[0][0].duration;
-				$scope.directions = data[1];
+			// <BAD BAD BAD BAD BAD>
+			// the reason this is here is because angular-leaflet doesn't
+			// $compile the html in the markers, meaning we can't easily change
+			// classes on click...kind of an oversight. i opened an issue
+			d3.selectAll('.station-clicked').classed('station-clicked', false);
+			d3.select('#marker_' + station1).classed('station-clicked', true);
+			// /<BAD BAD BAD BAD BAD>
+		} else {
+			var station2 = payload.model.id;
+			$rootScope.$emit('station_path', [station1, station2]);
+
+			// <BAD>
+			d3.select('#marker_' + station2).classed('station-clicked', true);
+			// </BAD>
+
+			bikeDirections.get(station1, station2).then(function (data) {
 				$scope.route = {
 					p1: {
-						color: 'blue',
+						color: '#33CC33',
 						weight: 3,
-						latlngs: data[1].coordinates.map(function (e) {
-                        	return {lat:e[1], lng:e[0]}
-                        }),
-                        message: String(duration)
+						// message: duration,
+						latlngs: data.coordinates.map(function (e) {
+							return { lat: e[1], lng: e[0] };
+						})
 					}
 				};
+
+				// not working right now, nothing gets appended
+				/*
+				if (!selectedPath) {
+					var svg = d3.select('svg');
+					var defs = svg.append('defs');
+					defs.append('filter')
+						.attr("id", "glow")
+						.attr("stdDeviation", 50)
+						.attr("in", "SourceGraphic");
+					svg.select('path').attr("filter", "url(#glow)");
+					selectedPath = true;
+				}
+				*/
+
 				return 1;
 			}).then(function (data) {
-				bikeStationId1 = null;
+				station1 = null;
 			});
-		} else {
-			bikeStationId1 = payload.model.id;
-			$scope.route = {};
 		}
-		
-		console.log('clicked: ' + payload.model.properties.name);
 	});
 
 	$scope.$on('leafletDirectiveMap.zoomend', function (ev, payload) {
@@ -195,169 +211,105 @@ mapApp.controller('MainController', function ($scope, $q, bikeRides, stationData
 
 	$scope.$on('leafletDirectiveMap.baselayerchange', function (ev, payload) {
 		console.log('new layer: ' + payload.leafletEvent.name);
-	})
+	});
+
+	$scope.$on('leafletDirectiveMap.click', function (ev, payload) {
+		d3.selectAll('.station-clicked').classed('station-clicked', false);
+		station1 = null;
+		$scope.route = {};
+	});
 });
 
-mapApp.controller('GraphController', function ($scope, stationData) {
-	/*
-		THIS CODE IS ALL TERRIBLE AND SHOULD
-		BE MIGRATED TO A DIRECTIVE AS SOON AS
-		POSSIBLE, I FEEL LIKE I'M USING JQUERY
-		OR SOME SHIT
-	*/
 
-	var currentSizing = "nothing";
-	var currentEdge = "fixed";
-	var pathSource = "";
-
-	var width = 500, height = 600;
-
-	var fill = d3.scale.category20();
-
-	var nodes;
-	var links;
-	var node;
-	var link;
-	var force;
-
-	var restart = function () {
-		link = link.data(links);
-		node = node.data(nodes);
-		var nodeg = node.enter().insert("g")
-			.attr("class", "node")
-			.call(force.drag);
-
-		nodeg.append("circle")
-			.attr("r", 5)
-			.attr("class", "node")
-			// .style("stroke-width", 0)
-			.style("stroke", "#808080");
-					
-		node.exit().transition().duration(300).attr("r", 1).remove();
-
-		link.enter().insert("line", ".node").attr("class", "link");
-		link.exit().remove();
-		force.start();
+mapApp.controller('ChartsController', function ($scope, $rootScope, bikeRidesSummary) {
+	$scope.day_by_hour = {
+		cols: [
+			{ id: "hour_sub", type: "line", name: "Hour: Subscribed", color: "blue" },
+			{ id: "hour_cas", type: "line", name: "Hour: Casual", color: "red" },
+			{ id: "hour_total", type: "line", name: "Hour: Total", color: "purple" }
+		],
+		axis: { id: "x" },
+		data: [
+			{ x: 10, hour_sub: 10, hour_cas: 10, hour_total: 15 },
+			{ x: 20, hour_sub: 100, hour_cas: 90, hour_total: 60 },
+			{ x: 30, hour_sub: 15, hour_cas: 30, hour_total: 70 },
+			{ x: 40, hour_sub: 50, hour_cas: 40, hour_total: 15 }
+		]
 	};
 
-	var plotLayout = function () {
-		force.stop();
-		minX = d3.min(nodes, function(d) { return parseFloat(d["lng"]); });
-		maxX = d3.max(nodes, function(d) { return parseFloat(d["lng"]); });
-		minY = d3.min(nodes, function(d) { return parseFloat(d["lat"]); });
-		maxY = d3.max(nodes, function(d) { return parseFloat(d["lat"]); });
-
-		heightRamp = d3.scale.linear().domain([minY, maxY]).range([550,50]).clamp(true);
-		widthRamp = d3.scale.linear().domain([minX, maxX]).range([50,450]).clamp(true);
-
-		for (x in nodes) {
-			nodes[x].x = widthRamp(parseFloat(nodes[x].lng));
-			nodes[x].px = widthRamp(parseFloat(nodes[x].lng));
-			nodes[x].y = heightRamp(parseFloat(nodes[x].lat));
-			nodes[x].py = heightRamp(parseFloat(nodes[x].lat));
-		}
-		
-		link.attr("x1", function (d) { return widthRamp(d.source.lng); })
-			.attr("y1", function (d) { return heightRamp(d.source.lat); })
-			.attr("x2", function (d) { return widthRamp(d.target.lng); })
-			.attr("y2", function (d) { return heightRamp(d.target.lat); });
+	$scope.week_by_day = {
+		cols: [
+			{ id: "day_sub", type: "line", name: "Day: Subscribed", color: "blue" },
+			{ id: "day_cas", type: "line", name: "Day: Casual", color: "red" },
+			{ id: "day_total", type: "line", name: "Day: Total", color: "purple" }
+		],
+		axis: { id: "x" },
+		data: [
+			{ x: 10, day_sub: 10, day_cas: 10, day_total: 15 },
+			{ x: 20, day_sub: 100, day_cas: 90, day_total: 60 },
+			{ x: 30, day_sub: 15, day_cas: 30, day_total: 70 },
+			{ x: 40, day_sub: 50, day_cas: 40, day_total: 15 }
+		]
 	};
 
-	var randomGraph = function (n, p) {
-		// erdos-renyi
-		var graph = {nodes: [], links: []};
-		for (var i = 0; i < n; i++) {
-			var lat = Math.random();
-			var lng = Math.random();
-			var size = Math.random()
-			var newNode = {id: i, lat: lat, lng: lng, size: size};
-			graph.nodes.push(newNode);
-			for (var j = 0; j < n; j++) {
-				if (i < j && Math.random() < p) {
-					var weight = Math.random();
-					newLink = {source: i, target: j, weight: weight};
-					graph.links.push(newLink);
-				}
+	$scope.year_by_week = {
+		cols: [
+			{ id: "week_sub", type: "line", name: "Week: Subscribed", color: "blue" },
+			{ id: "week_cas", type: "line", name: "Week: Casual", color: "red" },
+			{ id: "week_total", type: "line", name: "Week: Total", color: "purple" }
+		],
+		axis: { id: "x" },
+		data: [
+			{ x: 10, week_sub: 10, week_cas: 10, week_total: 15 },
+			{ x: 20, week_sub: 100, week_cas: 90, week_total: 60 },
+			{ x: 30, week_sub: 15, week_cas: 30, week_total: 70 },
+			{ x: 40, week_sub: 50, week_cas: 40, week_total: 15 }
+		]
+	};
+
+	$rootScope.$on('station_path', function (event, payload) {
+		bikeRidesSummary.get(payload[0], payload[1]).then(function (data) {
+			var data_scope = [];
+			for (var i = 0; i < 24; i++) {
+				data_scope.push({
+					x: i,
+					hour_sub: data.day_by_hour.subscribed[i],
+					hour_cas: data.day_by_hour.casual[i],
+					hour_total: data.day_by_hour.total[i],
+				});
 			}
-		}
-		
-		d3.select("#network-viz-1 #background").remove();
-		initializeGraph(graph);
-	};
+			$scope.day_by_hour.data = data_scope;
 
-	var initializeGraph = function (graph) {
-		var newNodes = [];
-		var newLinks = [];
-		var nodeHash = {};
-		for (var i = 0; i < graph.nodes.length; i++) {
-			newNodes.push(graph.nodes[i]);
-			nodeHash[String(graph.nodes[i].id)] = i;
-		}
-		for (var i = 0; i < graph.links.length; i++) {
-			newLinks.push({
-				id: i,
-				source: graph.nodes[nodeHash[graph.links[i].source]],
-				target: graph.nodes[nodeHash[graph.links[i].target]],
-				weight: graph.links[i].weight
-			});
-		}
+			data_scope = [];
+			for (var i = 0; i < 7; i++) {
+				data_scope.push({
+					x: i,
+					day_sub: data.week_by_day.subscribed[i],
+					day_cas: data.week_by_day.casual[i],
+					day_total: data.week_by_day.total[i],
+				});
+			}
+			$scope.week_by_day.data = data_scope;
 
-		var minWeight = d3.min(newLinks, function (d) {return parseFloat(d["weight"])});
-		var maxWeight = d3.max(newLinks, function (d) {return parseFloat(d["weight"])});
-		var edgeRamp = d3.scale.linear().domain([minWeight, maxWeight]).range([.5,3]).clamp(true);
-
-		force = d3.layout.force()
-			.size([width, height])
-			.nodes(newNodes)
-			.links(newLinks)
-			.linkDistance(function(d) {return (edgeRamp(parseFloat(d["weight"])) * 30)})
-			.charge(-60)
-			.on("tick", tick);
-
-		var svg = d3.select('#network-viz-1');
-		
-		svg.append("rect")
-			.attr("width", width)
-			.attr("height", height)
-			.attr("id","background");
-
-		nodes = force.nodes();
-		links = force.links();
-		node = svg.selectAll(".node");
-		link = svg.selectAll(".link");
-
-		var minSize = d3.min(nodes, function (d) { return parseFloat(d["size"]); });
-		var maxSize = d3.max(nodes, function (d) { return parseFloat(d["size"]); });
-		var minWeight = d3.min(links, function (d) { return parseFloat(d["weight"]); });
-		var maxWeight = d3.max(links, function (d) { return parseFloat(d["weight"]); });
-
-		var sizingRamp = d3.scale.linear().domain([minSize, maxSize]).range([1, 10]).clamp(true);
-		var edgeRamp = d3.scale.linear().domain([maxWeight, minWeight]).range([.5, 3]).clamp(true);
-		
-		restart();
-		d3.selectAll("circle.node").attr("r", function(d) { return sizingRamp(d["size"]); });
-		d3.selectAll("line.link").style("stroke-width", function(d) { return edgeRamp(d["weight"]); });
-	};
-
-	var tick = function () {
-		link.attr("x1", function (d) { return widthRamp(d.source.lng); })
-			.attr("y1", function (d) { return widthRamp(d.source.lat); })
-			.attr("x2", function (d) { return widthRamp(d.target.lng); })
-			.attr("y2", function (d) { return widthRamp(d.target.lat); });
-		node.attr("transform", function (d) {return "translate(" + d.lng + "," + d.lat + ")"});
-	};
-
-	// stationData.get().then(function (data) {
-	// });
-
-	randomGraph(50,.025);
-	plotLayout();
+			data_scope = [];
+			for (var i = 0; i < 52; i++) {
+				data_scope.push({
+					x: i,
+					week_sub: data.year_by_week.subscribed[i],
+					week_cas: data.year_by_week.casual[i],
+					week_total: data.year_by_week.total[i],
+				});
+			}
+			$scope.year_by_week.data = data_scope;
+		});
+	});
+	
 });
 
 
-mapApp.controller('GraphControllerTwo', function ($scope) {
-	var width = 600,
-			height = 500;
+mapApp.controller('GraphController', function ($scope) {
+	var width = 800,
+			height = 800;
 	var svg = d3.select('#network-viz-1')
 		.attr('width', width)
 		.attr('height', height);
@@ -379,8 +331,8 @@ mapApp.controller('GraphControllerTwo', function ($scope) {
 		var minY = d3.min(g.nodes, function (d) { return d.lat; });
 		var maxY = d3.max(g.nodes, function (d) { return d.lat; });
 
-		var heightRamp = d3.scale.linear().domain([minY, maxY]).range([550,50]).clamp(true);
-		var widthRamp = d3.scale.linear().domain([minX, maxX]).range([50,450]).clamp(true);
+		var heightRamp = d3.scale.linear().domain([minY, maxY]).range([height - 50, 50]).clamp(true);
+		var widthRamp = d3.scale.linear().domain([minX, maxX]).range([50, width - 50]).clamp(true);
 
 		svg.selectAll(".line")
 			.data(g.edges)

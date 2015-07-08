@@ -17,6 +17,9 @@ from models import Weather, BlockGroup, BikeStation, BikeRide, \
 
 from numpy import isclose
 
+from polyline.codec import PolylineCodec
+from urllib import urlopen, urlencode
+
 DEBUG = True
 SECRET_KEY = 'develop'
 USERNAME = 'admin'
@@ -66,7 +69,7 @@ def get_data():
 @app.route('/station_data')
 def get_geojson():
 	rets = []
-	st = db_session.query(BikeStation).limit(25)
+	st = db_session.query(BikeStation).limit(10)
 	for s in st:
 		geom = json.loads(db_session.scalar(s.geom.ST_AsGeoJSON()))
 		feature = Feature(
@@ -98,11 +101,60 @@ def get_rides(start, end):
 	return Response(json.dumps(rets), mimetype='application/json')
 
 
+def ride_statistics(rides_raw):
+	rets = {}
+	rides = [{
+		'subscribed': e.subscribed,
+		'hour': e.start_date.hour,
+		'weekday': e.start_date.weekday(),
+		'yearweek': e.start_date.timetuple().tm_yday / 7
+	} for e in rides_raw]
+
+	rets['day_by_hour'] = {
+		'subscribed': [len([e for e in rides if e['hour'] == i and e['subscribed']]) for i in range(24)],
+		'casual': [len([e for e in rides if e['hour'] == i and not e['subscribed']]) for i in range(24)],
+		'total': [len([e for e in rides if e['hour'] == i]) for i in range(24)]
+	}
+
+	rets['week_by_day'] = {
+		'casual': [len([e for e in rides if e['weekday'] == i and not e['subscribed']]) for i in range(7)],
+		'subscribed': [len([e for e in rides if e['weekday'] == i and e['subscribed']]) for i in range(7)],
+		'total': [len([e for e in rides if e['weekday'] == i]) for i in range(7)]
+	}
+
+	rets['year_by_week'] = {
+		'subscribed': [len([e for e in rides if e['yearweek'] == i and e['subscribed']]) for i in range(52)],
+		'casual': [len([e for e in rides if e['yearweek'] == i and not e['subscribed']]) for i in range(52)],
+		'total': [len([e for e in rides if e['yearweek'] == i]) for i in range(52)]
+	}
+
+	return rets
+
+
+@app.route('/rides_summary')
+def get_rides_data_all():
+	q = db_session.query(BikeRide).all()
+	return jsonify(ride_statistics(q))
+
+
+@app.route('/rides_summary/<int:start>/<int:end>')
+def get_rides_data(start, end):
+	# day x hour, week x day, year x week data, by subscription type
+	q = db_session.query(BikeRide).filter(
+		(BikeRide.start_station_id == start) & (BikeRide.end_station_id == end)
+	)
+
+	return jsonify(ride_statistics(q))
+
+
 def merge_linestrings(ls):
 	# takes an ordered list of GeoJSON linestrings forming a path and makes them into
 	# one long linestring. maybe the linestring is oriented "backwards"
 
 	# forwards vs backwards for last string
+
+	if len(ls) < 2:
+		return ls
 
 	ls_t = lambda n: ls[n]['coordinates']
 
@@ -176,6 +228,25 @@ def get_route(start, end):
 	end_node = closest_node(*station_coords(end))
 
 	return jsonify(fastest_route(start_node, end_node))
+
+
+@app.route('/bike_station_route_osrm/<int:start>/<int:end>')
+def get_route_osrm(start, end):
+	rets = []
+	lat1, lon1 = db_session.query(BikeStation.geom.ST_Y(), BikeStation.geom.ST_X()).filter(
+		BikeStation.id == start
+	).first()
+	lat2, lon2 = db_session.query(BikeStation.geom.ST_Y(), BikeStation.geom.ST_X()).filter(
+		BikeStation.id == end
+	).first()
+
+	url = 'http://127.0.0.1:5080/viaroute?loc={0},{1}&loc={2},{3}'.format(lat1, lon1, lat2, lon2)
+	f = urlopen(url)
+	jsn = f.read()
+	f.close()
+	# TO DO: finish
+	route = 123
+	return 1
 
 
 if __name__ == '__main__':
