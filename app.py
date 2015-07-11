@@ -46,30 +46,19 @@ app.config.from_object(__name__)
 
 @app.teardown_appcontext
 def shutdown_session(exception=None):
-    db_session.remove()
-    db_session_routing.remove()
+	db_session.remove()
+	db_session_routing.remove()
 
 
 @app.route('/')
 def main():
-	return send_from_directory('static/html', 'index_2.html')
-
-
-@app.route('/data_sample')
-def get_data():
-	w = db_session.query(Weather).first()
-	return jsonify({
-		'temp': w.temperature,
-		'hum': w.humidity,
-		'precip': w.precipitation,
-		'datetime': w.datetime.isoformat()
-	})
+	return send_from_directory('static/html', 'index.html')
 
 
 @app.route('/station_data')
 def get_geojson():
 	rets = []
-	st = db_session.query(BikeStation).limit(10)
+	st = db_session.query(BikeStation)
 	for s in st:
 		geom = json.loads(db_session.scalar(s.geom.ST_AsGeoJSON()))
 		feature = Feature(
@@ -230,23 +219,43 @@ def get_route(start, end):
 	return jsonify(fastest_route(start_node, end_node))
 
 
-@app.route('/bike_station_route_osrm/<int:start>/<int:end>')
-def get_route_osrm(start, end):
-	rets = []
-	lat1, lon1 = db_session.query(BikeStation.geom.ST_Y(), BikeStation.geom.ST_X()).filter(
-		BikeStation.id == start
-	).first()
-	lat2, lon2 = db_session.query(BikeStation.geom.ST_Y(), BikeStation.geom.ST_X()).filter(
-		BikeStation.id == end
-	).first()
+@app.route('/bike_rides_interval')
+def rides_by_start():
+	# gets the ride counts for each station in stations between t_start
+	# and t_end grouped by t_interval, for subscribed riders or not
+	# times need to be formatted like YYYY-MM-DD hh:mm:ss, t_interval is
+	# formatted as 0d:0h:0m:0s
 
-	url = 'http://127.0.0.1:5080/viaroute?loc={0},{1}&loc={2},{3}'.format(lat1, lon1, lat2, lon2)
-	f = urlopen(url)
-	jsn = f.read()
-	f.close()
-	# TO DO: finish
-	route = 123
-	return 1
+	t_start = request.args.get('t_start')
+	t_end = request.args.get('t_end')
+	t_interval = request.args.get('t_interval')
+	stations = request.args.getlist('station')
+
+	stations = map(int, stations) if stations else [e[0] for e in db_session.query(BikeStation.id).all()]
+	d, h, m, s = map(int, re.match('(\d*):(\d*):(\d*):(\d*)', t_interval).groups())
+	interval_td = timedelta(days=d, hours=h, minutes=m, seconds=s)
+	start_dt = datetime.strptime(t_start, '%Y-%m-%d %H:%M:%S')
+	end_dt = datetime.strptime(t_end, '%Y-%m-%d %H:%M:%S')
+	num_intervals = int(ceil((end_dt - start_dt).total_seconds() / interval_td.total_seconds()))
+
+	query = """
+		select start_date, subscribed, ST_X(geom) as x, ST_Y(geom) as y
+		from bike_rides left join bike_stations on bike_rides.start_station_id=bike_stations.id
+		where start_date >= '{0}' and end_date < '{1}' and bike_stations.id in {2}
+	""".format(t_start, t_end, str(tuple(stations)))
+	rds = db_session.execute(query).fetchall()
+
+	ret = { i: [] for i in range(num_intervals)}
+
+	for r in rds:
+		interval = int((r[0] - start_dt).total_seconds() / interval_td.total_seconds())
+		ret[interval].append({
+			'lng': r[2],
+			'lat': r[3],
+			'subscribed': r[1]
+		})
+
+	return jsonify(ret)
 
 
 if __name__ == '__main__':

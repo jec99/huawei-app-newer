@@ -2,58 +2,42 @@
 <!-- <html ng-app='map'> -->
 <html ng-app='mapApp'>
 <head>
-	<title>Basic Maps</title>
-	<script type="text/javascript" src='static/js/angular.min.js'></script>
-	<script type="text/javascript" src='static/js/app.js'></script>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Rewritten Map App</title>
+
+	<script type="text/javascript" src='static/js/jquery.js'></script>
+	<script type="text/javascript" src='static/js/d3.js'></script>
+
 	<script type="text/javascript" src='static/js/mapbox.js'></script>
+	<script type="text/javascript" src='static/js/angular.min.js'></script>
 	<link rel="stylesheet" type="text/css" href='static/css/mapbox.css'></link>
+
 	<link rel="stylesheet" type="text/css" href='static/css/main.css'></link>
-	<!-- // <script src='https://api.tiles.mapbox.com/mapbox.js/v2.2.1/mapbox.js'></script> -->
-	<!-- <link type='text/css' href='https://api.tiles.mapbox.com/mapbox.js/v2.2.1/mapbox.css' rel='stylesheet'></link> -->
+	<link rel="stylesheet" type="text/css" href='static/css/network.css'></link>
+
+	<link rel="stylesheet" href="static/css/angular-material.css"/>
+	<script type='text/javascript' src="static/js/angular-animate.js"></script>
+	<script type='text/javascript' src="static/js/angular-aria.js"></script>
+	<script type="text/javascript" src="static/js/angular-material.js"></script>
+
+	<script type="text/javascript" src='static/js/app.js'></script>
 </head>
 <body ng-controller='MainController'>
-	<div>
-		{{ text }}
+	<div id='primary-conatiner'>
+		<div id='main-tabs-container'>
+			<md-content class='md-padding'>
+				<md-tabs md-dynamic-height='false'>
+					<md-tab label='one'>
+						<md-tab-label>
+							Station Map
+						</md-tab-label>
+						<md-tab-body class='md-padding'>
+							<leaflet layers='layers' center='dc' markers="stations" paths="route" maxbounds='maxbounds' defaults='defaults'  style='width: 100%; height: 800px'></leaflet>
+						</md-tab-body>
+					</md-tab>
+				</md-tabs>
+			</md-content>
+		</div>
 	</div>
-	<div>
-		{{ data }}
-	</div>
-	<div>
-		{{ geojson }}
-	</div>
-
-	<div id="map"></div>
-
-	<script type="text/javascript">
-		// basic leaflet stuff here for now, will move to angular later
-
-		var bounds = L.latLngBounds(L.latLng(38.5439, -77.5896), L.latLng(39.6268, -76.0597));
-		var map = L.map('map', {
-			maxBounds: bounds,
-			maxZoom: 16,
-			minZoom: 10,
-			attributionControl: false
-		}).setView([39.1130, -76.8123], 12);
-		L.tileLayer('http://127.0.0.1:8080/main/{z}/{x}/{y}.png').addTo(map);
-
-		// map.setMaxBounds(bounds);
-
-		var geojsonFeature = {
-			"type": "Feature",
-			"properties": {
-				"name": "bike station",
-				"popupContent": "this is a bike station"
-			},
-			"geometry": {
-				"type": "Point",
-				"coordinates": [-76.998347, 38.899972]
-			}
-		};
-
-		var geojsonLayer = L.geoJson().addTo(map);
-		geojsonLayer.addData(geojsonFeature);
-
-	</script>
-
 </body>
 </html>
