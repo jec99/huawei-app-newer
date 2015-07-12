@@ -1,4 +1,5 @@
-angular.module('mapApp')
+
+angular.module('mapApp.factories', [])
 
 .factory('stationData', function ($q, $http) {
 	var stations;

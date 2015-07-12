@@ -5,6 +5,7 @@ body {
 
 #map {
 	width: 100%;
+	height: 600px;
 }
 
 .leaflet-control-attribution {
@@ -13,60 +14,31 @@ body {
 
 /* MARKERS */
 
-div.marker-default {
+.station-marker {
+	-webkit-transition: all 0.5s ease-in-out;
+	-moz-transition: all 0.5s ease-in-out;
+	-o-transition: all 0.5s ease-in-out;
+	transition: all 0.5s ease-in-out;
+
+	stroke: black;
+	opacity: .5;
+	fill: orange;
+	cursor: pointer;
 	z-index: 9000 !important;
-	top: -5px;
-	left: -5px;
 }
 
-div.marker-default:hover {
+.station-marker.station-clicked {
+	opacity: 1;
+	stroke-width: 2;
+}
+
+.station-marker:hover {
 	z-index: 10000 !important;
 }
 
-div.marker-default div.icon-container {
-	text-align: center;
-	font-size: 12px;
-
-	padding-top: 2%;
-
-	border-radius: 50%;
-	width: 10px;
-	height: 10px;
-	opacity: 0.75;
-	background: #ff6600;
-
-	-webkit-transition: all 0.1s ease-in-out;
-	-moz-transition: all 0.1s ease-in-out;
-	-o-transition: all 0.1s ease-in-out;
-	-ms-transition: all 0.1s ease-in-out;
-	transition: all 0.1s ease-in-out;
-}
-
-div.marker-default div.icon-container:hover {
-	-webkit-transform: scale(1.25);
-	-moz-transform: scale(1.25);
-	-ms-transform: scale(1.25);
-	-o-transform: scale(1.25);
-	transform: scale(1.25);
-	-webkit-box-shadow:inset 0px 0px 0px 1px #CC5200;
-	-moz-box-shadow:inset 0px 0px 0px 1px #CC5200;
-	box-shadow:inset 0px 0px 0px 1px #CC5200;
-	opacity: 0.9;
-	z-index: 1000;
-}
-
-div.marker-default div.icon-container.station-clicked {
-	-webkit-box-shadow:inset 0px 0px 0px 1px #33CC33;
-	-moz-box-shadow:inset 0px 0px 0px 1px #33CC33;
-	box-shadow:inset 0px 0px 0px 1px #33CC33;
-
-	opacity: 1;
-
-	-webkit-transform: scale(1.5);
-	-moz-transform: scale(1.5);
-	-ms-transform: scale(1.5);
-	-o-transform: scale(1.5);
-	transform: scale(1.5);
+div.marker-default {
+	top: -5px;
+	left: -5px;
 }
 
 /* TOOLTIPS */
@@ -77,28 +49,29 @@ div.marker-default div.icon-container.station-clicked {
 }
 
 .station-tooltip:hover:after{
-    background: #333;
-    background: rgba(0,0,0,.8);
-    border-radius: 5px;
-    bottom: 21px;
-    color: #fff;
-    content: attr(title);
-    left: -60px;
-    padding: 2px 4px;
-    position: absolute;
-    z-index: 10098;
-    width: 150px;
+	background: #333;
+	background: rgba(0,0,0,.8);
+	border-radius: 5px;
+	bottom: 21px;
+	color: #fff;
+	content: attr(title);
+	left: -60px;
+	padding: 2px 4px;
+	position: absolute;
+	z-index: 10098;
+	width: 150px;
 	text-align: center;
+	z-index: 10099 !important;
 }
 
 .station-tooltip:hover:before{
-    border: solid;
-    border-color: #333 transparent;
-    border-width: 6px 6px 0 6px;
-    bottom: 15px;
-    content: "";
-    position: absolute;
-    z-index: 10099;
+	border: solid;
+	border-color: #333 transparent;
+	border-width: 6px 6px 0 6px;
+	bottom: 15px;
+	content: "";
+	position: absolute;
+	z-index: 10099 !important;
 }
 
 /* TABS */
