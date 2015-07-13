@@ -134,5 +134,3 @@ L.HexbinLayer = L.Class.extend({
 L.hexbinLayer = function (data, options) {
 	return new L.HexbinLayer(data, options);
 };
-
-
