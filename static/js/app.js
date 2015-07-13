@@ -5,7 +5,7 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 	return 0;
 })
 
-.controller('MapController', function ($scope, $timeout, $rootScope, $q, bikeRides, stationData, bikeDirections) {
+.controller('MapController', function ($scope, $timeout, $rootScope, $q, bikeRides, stationData, bikeDirections, bikeRideInterval) {
 	var center = {
 		lat: 38.888928,
 		lng: -77.034136,
@@ -20,6 +20,33 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 	var simple = L.tileLayer('http://127.0.0.1:8080/simple/{z}/{x}/{y}.png');
 	var muted = L.tileLayer('http://127.0.0.1:8080/muted/{z}/{x}/{y}.png');
 
+
+	var station_paths_layer = L.geoJson([], {
+		style: {
+			color: '#33CC33',
+			weight: 3,
+			clickable: true,
+			className: 'station-path'
+		}
+	}).on('click', function () {
+		console.log('clicked geojson');
+	});
+
+	var heatmap_layer = new HeatmapOverlay({
+		radius: 30,
+		maxOpacity: 1,
+		scaleRadius: false,
+		useLocalExtrema: false,
+		latField: 'lat',
+		lngField: 'lng',
+		valueField: 'count',
+		gradient: {
+			'.5': 'blue',
+			'.8': 'red',
+			'.95': 'white'
+		},
+	});
+
 	var map = L.map('map', {
 		center: [center.lat, center.lng],
 		zoom: center.zoom,
@@ -31,20 +58,11 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 		layers: [
 			simple_grey,
 			simple,
-			muted
+			muted,
+			station_paths_layer,
+			heatmap_layer
 		]
 	});
-
-	var station_paths_layer = L.geoJson([], {
-		style: {
-			color: '#33CC33',
-			weight: 3,
-			clickable: true,
-			className: 'station-path'
-		}
-	}).on('click', function () {
-		console.log('clicked geojson');
-	}).addTo(map);
 
 	var tile_layers = {
 		'Simple (Greyscale)': simple_grey,
@@ -52,7 +70,9 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 		'Muted': muted
 	};
 
-	var overlays = {};
+	var overlays = {
+		'Heatmap': heatmap_layer
+	};
 
 	L.control.layers(tile_layers, overlays).addTo(map);
 
@@ -71,14 +91,14 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 
 		var feature = g.selectAll('circle')
 			.data(data.features)
-			// .enter().append('a')
-			// .classed('tooltip', true).classed('station-tooltip', true)
-			// .attr('title', function (e) { return e.properties.name; })
 			.enter().append('circle')
 			.attr('r', 0)
 			.classed('station-marker', true)
 			.on('click', clickedStation)
 			.attr('name', function (e) { return e.properties.name; });
+
+		/*
+		TOOLTIPS
 
 		$('svg circle.station-marker').tipsy({
 			gravity: 's',
@@ -87,7 +107,7 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 				return this.__data__.properties.name;
 			}
 		});
-		// class for styling is tipsy tipsy-s
+		*/
 
 		feature
 			.transition()
@@ -95,7 +115,7 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 				return Math.random() * 200 + 100;
 			})
 			.duration(150)
-			.attr('r', 5);
+			.attr('r', 3);
 
 		map.on("viewreset", update);
 		update();
@@ -109,20 +129,20 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 		}
 
 		function clickedStation (e) {
-			d3.select(this).classed('station-clicked', true);
-			console.log(d3.select(this).attr('name'));
+			station_paths_layer.clearLayers()
 			if (station1 === null) {
 				station1 = e.id;
-				// d3.selectAll('.station-clicked').classed('station-clicked', false);
-				// d3.select('#marker_' + station1).classed('station-clicked', true);
+				d3.selectAll('.station-clicked').classed('station-clicked', false);
+
 			} else {
 				station2 = e.id;
 				bikeDirections.get(station1, station2).then(function (data) {
-					station_paths_layer.clearLayers().addData(data);
+					station_paths_layer.addData(data);
 					station1 = null;
 					station2 = null;
 				});
 			}
+			d3.select(this).classed('station-clicked', true);
 		}
 	});
 
@@ -131,7 +151,28 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 		station1 = null;
 		station2 = null;
 		station_paths_layer.clearLayers();
-	};
+	}
+
+	function values(o) {
+		rets = [];
+		for (var n in o) {
+			rets.push(o[n]);
+		}
+		return rets
+	}
+
+	bikeRideInterval.get_counts('2014-06-01 00:00:00', '2014-06-02 00:00:00', '00:1:00:00', []).then(function (data) {
+		var vals = values(data[12]);
+		console.log(vals);
+		var max = Math.max.apply(null, vals.map(function (e) { return e['count']; }));
+		console.log(max);
+		heat_data = data[12];
+		heatmap_layer.setData({
+			min: 0,
+			max: max,
+			data: values(data[12])
+		});
+	});
 
 	map.on('click', function (e) {
 		if (e.originalEvent.srcElement.nodeName != 'circle') {
@@ -139,12 +180,8 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 		}
 	});
 
-	map.on('click', function (e) {
-		// console.log(e);
-	});
-
 	map.on('zoomend', function (e) {
-		console.log(e);
+		// console.log(e);
 	});
 
 });

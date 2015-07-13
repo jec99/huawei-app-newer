@@ -1,24 +1,21 @@
 from flask import Flask, request, session, g, redirect, url_for, Response, \
 	abort, render_template, flash, jsonify, send_from_directory
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func, and_, or_
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-import geoalchemy2.functions as func
+import geoalchemy2.functions as func_geo
 from geoalchemy2 import Geometry
-
-import json
 from geojson import Feature, FeatureCollection, dumps
-
-# from database import db_session
-import models
 from models import Weather, BlockGroup, BikeStation, BikeRide, \
 	SubwayStation, SubwayDelay, Location, Base
-
 from numpy import isclose
-
 from polyline.codec import PolylineCodec
 from urllib import urlopen, urlencode
+from datetime import datetime, timedelta
+from math import ceil
+import json
+import re
 
 DEBUG = True
 SECRET_KEY = 'develop'
@@ -206,6 +203,7 @@ def fastest_route(m, n):
 
 	return merge_linestrings(edges)
 
+
 @app.route('/bike_station_route/<int:start>/<int:end>')
 def get_route(start, end):
 	rets = []
@@ -219,7 +217,7 @@ def get_route(start, end):
 	return jsonify(fastest_route(start_node, end_node))
 
 
-@app.route('/bike_rides_interval')
+@app.route('/bike_rides_interval_events')
 def rides_by_start():
 	# gets the ride counts for each station in stations between t_start
 	# and t_end grouped by t_interval, for subscribed riders or not
@@ -230,8 +228,10 @@ def rides_by_start():
 	t_end = request.args.get('t_end')
 	t_interval = request.args.get('t_interval')
 	stations = request.args.getlist('station')
+	subscribed = request.args.getlist('subscribed')
 
 	stations = map(int, stations) if stations else [e[0] for e in db_session.query(BikeStation.id).all()]
+	subscribed = map(bool, subscribed) if subscribed else [True, False]
 	d, h, m, s = map(int, re.match('(\d*):(\d*):(\d*):(\d*)', t_interval).groups())
 	interval_td = timedelta(days=d, hours=h, minutes=m, seconds=s)
 	start_dt = datetime.strptime(t_start, '%Y-%m-%d %H:%M:%S')
@@ -239,10 +239,10 @@ def rides_by_start():
 	num_intervals = int(ceil((end_dt - start_dt).total_seconds() / interval_td.total_seconds()))
 
 	query = """
-		select start_date, subscribed, ST_X(geom) as x, ST_Y(geom) as y
+		select start_date, ST_X(geom) as x, ST_Y(geom) as y
 		from bike_rides left join bike_stations on bike_rides.start_station_id=bike_stations.id
-		where start_date >= '{0}' and end_date < '{1}' and bike_stations.id in {2}
-	""".format(t_start, t_end, str(tuple(stations)))
+		where start_date >= '{0}' and end_date < '{1}' and bike_stations.id in {2} and subscribed in {3}
+	""".format(t_start, t_end, str(tuple(stations)), str(tuple(subscribed)))
 	rds = db_session.execute(query).fetchall()
 
 	ret = { i: [] for i in range(num_intervals)}
@@ -250,13 +250,101 @@ def rides_by_start():
 	for r in rds:
 		interval = int((r[0] - start_dt).total_seconds() / interval_td.total_seconds())
 		ret[interval].append({
-			'lng': r[2],
-			'lat': r[3],
-			'subscribed': r[1]
+			'lng': r[1],
+			'lat': r[2]
 		})
 
 	return jsonify(ret)
 
 
+@app.route('/bike_rides_interval_counts')
+def rides_by_start_counts():
+	t_start = request.args.get('t_start')
+	t_end = request.args.get('t_end')
+	t_interval = request.args.get('t_interval')
+	stations = request.args.getlist('station')
+	subscribed = request.args.getlist('subscribed')
+
+	stations = map(int, stations) if stations else [e[0] for e in db_session.query(BikeStation.id).all()]
+	subscribed = map(bool, subscribed) if subscribed else [True, False]
+	d, h, m, s = map(int, re.match('(\d*):(\d*):(\d*):(\d*)', t_interval).groups())
+	interval_td = timedelta(days=d, hours=h, minutes=m, seconds=s)
+	start_dt = datetime.strptime(t_start, '%Y-%m-%d %H:%M:%S')
+	end_dt = datetime.strptime(t_end, '%Y-%m-%d %H:%M:%S')
+	num_intervals = int(ceil((end_dt - start_dt).total_seconds() / interval_td.total_seconds()))
+
+	bike_query = """
+		select bike_stations.id, start_date
+		from bike_rides left join bike_stations on bike_rides.start_station_id=bike_stations.id
+		where start_date >= '{0}' and end_date < '{1}' and bike_stations.id in {2} and subscribed in {3}
+	""".format(t_start, t_end, str(tuple(stations)), str(tuple(subscribed)))
+	rds = db_session.execute(bike_query).fetchall()
+
+	station_data = list(db_session.query(
+		BikeStation.id,
+		BikeStation.geom.ST_X(),
+		BikeStation.geom.ST_Y()
+	).filter(BikeStation.id.in_(stations)).all())
+
+	ret = {
+		i: {
+			id: {
+				'lng': lng,
+				'lat': lat,
+				'count': 0
+			} for id, lng, lat in station_data
+		} for i in range(num_intervals)
+	}
+
+	for r in rds:
+		i = int((r[1] - start_dt).total_seconds() / interval_td.total_seconds())
+		ret[i][r[0]]['count'] += 1
+
+	import sys
+	print sys.getsizeof(ret)	
+
+	return jsonify(ret)
+
+
+@app.route('/bike_rides_interval_events_geojson')
+def events_geojson():
+	t_start = request.args.get('t_start')
+	t_end = request.args.get('t_end')
+	t_interval = request.args.get('t_interval')
+	stations = request.args.getlist('station')
+	subscribed = request.args.getlist('subscribed')
+
+	stations = map(int, stations) if stations else [e[0] for e in db_session.query(BikeStation.id).all()]
+	subscribed = map(bool, subscribed) if subscribed else [True, False]
+	d, h, m, s = map(int, re.match('(\d*):(\d*):(\d*):(\d*)', t_interval).groups())
+	interval_td = timedelta(days=d, hours=h, minutes=m, seconds=s)
+	start_dt = datetime.strptime(t_start, '%Y-%m-%d %H:%M:%S')
+	end_dt = datetime.strptime(t_end, '%Y-%m-%d %H:%M:%S')
+	num_intervals = int(ceil((end_dt - start_dt).total_seconds() / interval_td.total_seconds()))
+
+	bike_query = """
+		select bike_rides.id, start_date, subscribed, ST_AsGeoJSON(geom)
+		from bike_rides left join bike_stations on bike_rides.start_station_id=bike_stations.id
+		where start_date >= '{0}' and end_date < '{1}' and bike_stations.id in {2} and subscribed in {3}
+	""".format(t_start, t_end, str(tuple(stations)), str(tuple(subscribed)))
+	rds = db_session.execute(bike_query).fetchall()
+
+	ret = { i: [] for i in range(num_intervals) }
+
+	for r in rds:
+		i = int((r[1] - start_dt).total_seconds() / interval_td.total_seconds())
+		feature = Feature(
+			id=r[0],
+			geometry=json.loads(r[3]),
+			properties={ 'subscribed': r[2] }
+		)
+		ret[i].append(feature)
+	for i in range(num_intervals):
+		ret[i] = FeatureCollection(ret[i])
+
+	return jsonify({ 'data': ret })
+
+
 if __name__ == '__main__':
 	app.run()
+

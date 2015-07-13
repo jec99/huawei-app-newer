@@ -90,26 +90,33 @@ angular.module('mapApp.factories', [])
 })
 
 .factory('bikeRideInterval', function ($q, $http, $timeout) {
-	return {
-		get: function (t_start, t_end, t_interval, station) {
-			// YYYY-mm-dd HH:MM:SS, --''--, dd:hh:mm:ss, [station id]
-			var deferred = $q.defer();
-			$http({
-				url: '/bike_rides_interval',
-				method: 'GET',
-				params: {
-					t_start: t_start,
-					t_end: t_end,
-					t_interval: t_interval,
-					station: station
-				}
-			}).success(function (data, status, headers, response) {
-				deferred.resolve(data);
-			}).error(function (data, status, headers, response) {
-				deferred.reject(status);
-			});
+	function get (t_start, t_end, t_interval, station, url) {
+		// YYYY-mm-dd HH:MM:SS, --''--, dd:hh:mm:ss, [station id]
+		var deferred = $q.defer();
+		$http({
+			url: url,
+			method: 'GET',
+			params: {
+				t_start: t_start,
+				t_end: t_end,
+				t_interval: t_interval,
+				station: station
+			}
+		}).success(function (data, status, headers, response) {
+			deferred.resolve(data);
+		}).error(function (data, status, headers, response) {
+			deferred.reject(status);
+		});
 
-			return deferred.promise;
+		return deferred.promise;
+	}
+
+	return {
+		get_events: function (a, b, c, d) {
+			return get(a, b, c, d, '/bike_rides_interval_events');
+		},
+		get_counts: function (a, b, c, d) {
+			return get(a, b, c, d, '/bike_rides_interval_counts');
 		}
 	};
 });

@@ -27,52 +27,28 @@ body {
 	z-index: 9000 !important;
 }
 
+.station-marker:hover {
+	-webkit-transition: all 0.5s ease-in-out;
+	-moz-transition: all 0.5s ease-in-out;
+	-o-transition: all 0.5s ease-in-out;
+	transition: all 0.5s ease-in-out;
+
+	stroke: black;
+	opacity: 1;
+	fill: orange;
+	cursor: pointer;
+	z-index: 9001 !important;
+}
+
 .station-marker.station-clicked {
 	opacity: 1;
 	stroke-width: 2;
-}
-
-.station-marker:hover {
-	z-index: 10000 !important;
-}
-
-div.marker-default {
-	top: -5px;
-	left: -5px;
+	z-index: 9002 !important;
 }
 
 /* TOOLTIPS */
 
-.tooltip {
-	display: inline;
-	position: relative;
-}
 
-.station-tooltip:hover:after{
-	background: #333;
-	background: rgba(0,0,0,.8);
-	border-radius: 5px;
-	bottom: 21px;
-	color: #fff;
-	content: attr(title);
-	left: -60px;
-	padding: 2px 4px;
-	position: absolute;
-	z-index: 10098;
-	width: 150px;
-	text-align: center;
-	z-index: 10099 !important;
-}
-
-.station-tooltip:hover:before{
-	border: solid;
-	border-color: #333 transparent;
-	border-width: 6px 6px 0 6px;
-	bottom: 15px;
-	content: "";
-	position: absolute;
-	z-index: 10099 !important;
-}
 
 /* TABS */
 
@@ -95,30 +71,3 @@ md-content h1:first-child {
 
 /* CHARTS */
 
-#day-by-hour,
-#week-by-day,
-#year-by-week {
-	width: 500px;
-	height: 295px;
-	margin-right: 40px;
-}
-
-#primary-container {
-	margin: 0 auto;
-}
-
-#main-tabs-container {
-	float: left;
-	width: 1000px;
-}
-
-#charts-container {
-	float: left;
-	width: 550px;
-}
-
-#day-by-hour svg,
-#week-by-day svg,
-#year-by-week svg {
-	height: 295px;
-}
