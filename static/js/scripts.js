@@ -38,24 +38,18 @@ L.HexbinLayer = L.Class.extend({
 				this.project([bounds[0][0], bounds[1][1]]),
 				this.project([bounds[1][0], bounds[0][1]])
 			);
-	}
+		}
 	},
 	redraw: function () {
 		var padding = this.options.radius * 2;
 		var bounds = this.getBounds(this.data);
-		console.log('bounds');
-		console.log(bounds);
 		var zoom = this.map.getZoom();
-		// see below for this.container; it's an svg element
-		console.log('redrawing');
-		console.log(this.data);
 		this.container
 			.attr('width', bounds.getSize().x + 2 * padding)
 			.attr('height', bounds.getSize().y + 2 * padding)
 			.style("margin-left", (bounds.min.x - padding) + "px")
 			.style("margin-top", (bounds.min.y - padding) + "px");
 		// bounds.min is the top-left point of the bounds, conveniently
-		// BOOM HEADSHOT
 		if (!(zoom in this.levels)) {
 			this.levels[zoom] = this.container.append('g')
 				.attr('class', 'zoom-' + zoom);
@@ -72,26 +66,29 @@ L.HexbinLayer = L.Class.extend({
 	},
 	onAdd: function (map) {
 		this.map = map;
-		var overlayPane = this.map.getPanes().overlayPane;
-		if (!this.container || overlayPane.empty) {
-			console.log('i am here');
+		if (this.container == null) {
+			var overlayPane = this.map.getPanes().overlayPane;
 			this.container = d3.select(overlayPane)
 				.append('svg')
 				.attr('id', 'hexbin-container')
 				.classed('leaflet-layer', true)
 				.classed('leaflet-zoom-hide', true);
 		}
-		map.on({ 'zoomend': this.redraw }, this);
+		map.on({ 'moveend': this.redraw }, this);
 		this.redraw();
+	},
+	onRemove: function (map) {
+		if (this.container != null) {
+			this.container.remove();
+		}
+		map.off({'moveend': this._redraw}, this);
+		this.container = null;
+		this.map = null;
+		this.levels = {};
 	},
 	addTo: function (map) {
 		map.addLayer(this);
 		return this;
-	},
-	onRemove: function (map) {
-		if (!this.container) {
-			this.container.remove();
-		}
 	},
 	generateHexagons: function (container) {
 		var data = this.data.features.map(function (e) {
@@ -128,9 +125,6 @@ L.HexbinLayer = L.Class.extend({
 	},
 	setData: function (data) {
 		this.data = data != null ? data : {features: []};
-		// for (var x in this.levels) {
-		// 	this.levels[x].remove();
-		// }
 		this.levels = {};
 		this.redraw();
 		return this;

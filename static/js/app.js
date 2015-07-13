@@ -26,6 +26,16 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 		opacity: 0.6
 	});
 
+	var map = L.map('map', {
+		center: [center.lat, center.lng],
+		zoom: center.zoom,
+		minZoom: minZoom,
+		maxZoom: maxZoom,
+		bounceAtZoomLimits: true,
+		attributionControl: false,
+		maxBounds: bounds,
+	});
+
 	var station_paths_layer = L.geoJson([], {
 		style: {
 			color: '#33CC33',
@@ -52,28 +62,13 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 		},
 	});
 
-	var map = L.map('map', {
-		center: [center.lat, center.lng],
-		zoom: center.zoom,
-		minZoom: minZoom,
-		maxZoom: maxZoom,
-		bounceAtZoomLimits: true,
-		attributionControl: false,
-		maxBounds: bounds,
-		layers: [
-			simple_grey,
-			simple,
-			muted,
-			station_paths_layer,
-			heatmap_layer
-		]
-	});
+	var cscale = d3.scale.linear().domain([0, 1]).range(['white', 'black']).interpolate(d3.interpolateLab);
 
-	var tile_layers = {
-		'Simple (Greyscale)': simple_grey,
-		'Simple': simple,
-		'Muted': muted
-	};
+	function hexbinStyle(hexagons) {
+		hexagons
+			.attr('stroke', 'black')
+			.attr('fill', function (e) { return cscale(Math.random()); });
+	}
 
 	// initialize d3
 	map._initPathRoot();
@@ -82,7 +77,7 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 
 	var hexbin_layer = L.hexbinLayer(null, {
 		radius: 10,
-		opacity: 0.8,
+		opacity: 1,
 		clamp: false,
 		style: hexbinStyle,
 		mouseover: function () { console.log('mouse over'); },
@@ -90,9 +85,21 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 		click: function () { console.log('click'); }
 	}).addTo(map);
 
+	map.addLayer(heatmap_layer);
+	station_paths_layer.addTo(map);
+	simple.addTo(map);
+	simple_grey.addTo(map);
+	muted.addTo(map);
+
+	var tile_layers = {
+		'Simple (Greyscale)': simple_grey,
+		'Simple': simple,
+		'Muted': muted
+	};
+
 	var overlays = {
-		'Heatmap': heatmap_layer
-		// 'Hexbins': hexbin_layer
+		'Heatmap': heatmap_layer,
+		'Hexbins': hexbin_layer
 	};
 
 	L.control.layers(tile_layers, overlays).addTo(map);
@@ -188,14 +195,6 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 	});
 
 	// put the hexbins on
-	var cscale = d3.scale.linear().domain([0, 1]).range(['white', 'black']).interpolate(d3.interpolateLab);
-
-	function hexbinStyle(hexagons) {
-		hexagons
-			.attr('stroke', 'black')
-			.attr('fill', function (e) { return cscale(Math.random()); });
-	}
-
 	bikeRideInterval.get_events_geojson('2014-06-01 00:00:00', '2014-06-02 00:00:00', '00:1:00:00', []).then(function (data) {
 		var data_subset = data['data']['12'];
 		hexbin_layer.setData(data_subset);
