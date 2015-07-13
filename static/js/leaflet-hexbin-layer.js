@@ -8,12 +8,6 @@ ATTRIBUTION: this code is lightly adapted from Steven Hall's
 L.HexbinLayer = L.Class.extend({
 	includes: L.Mixin.Events,
 	initialize: function (data, options) {
-		/*
-		options = {
-			clamp: true/false,
-			scaling: 'sqrt'/'log'
-		}
-		*/
 		this.levels = {};
 		this.layout = d3.hexbin().radius(options.radius);
 		this.r_scale = d3.scale.sqrt().range([0, options.radius]).clamp(options.clamp);
@@ -68,6 +62,7 @@ L.HexbinLayer = L.Class.extend({
 		this.map = map;
 		if (this.container == null) {
 			var overlayPane = this.map.getPanes().overlayPane;
+			console.log(overlayPane);
 			this.container = d3.select(overlayPane)
 				.append('svg')
 				.attr('id', 'hexbin-container')
@@ -81,7 +76,7 @@ L.HexbinLayer = L.Class.extend({
 		if (this.container != null) {
 			this.container.remove();
 		}
-		map.off({'moveend': this._redraw}, this);
+		map.off({'moveend': this.redraw }, this);
 		this.container = null;
 		this.map = null;
 		this.levels = {};
