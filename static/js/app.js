@@ -17,13 +17,13 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 	var ne = L.latLng(39.6268, -76.0597);
 	var bounds = L.latLngBounds(sw, ne);
 	var simple_grey = L.tileLayer('http://127.0.0.1:8080/simple_grey/{z}/{x}/{y}.png', {
-		opacity: 0.3
+		opacity: 0.6
 	});
 	var simple = L.tileLayer('http://127.0.0.1:8080/simple/{z}/{x}/{y}.png', {
-		opacity: 0.3
+		opacity: 0.6
 	});
 	var muted = L.tileLayer('http://127.0.0.1:8080/muted/{z}/{x}/{y}.png', {
-		opacity: 0.3
+		opacity: 0.6
 	});
 
 	var station_paths_layer = L.geoJson([], {
@@ -75,16 +75,27 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 		'Muted': muted
 	};
 
+	// initialize d3
+	map._initPathRoot();
+	var svg = d3.select('#map').select("svg");
+	var g = svg.append("g");
+
+	var hexbin_layer = L.hexbinLayer(null, {
+		radius: 10,
+		opacity: 0.8,
+		clamp: false,
+		style: hexbinStyle,
+		mouseover: function () { console.log('mouse over'); },
+		mouseout: function () { console.log('mouse out'); },
+		click: function () { console.log('click'); }
+	}).addTo(map);
+
 	var overlays = {
 		'Heatmap': heatmap_layer
+		// 'Hexbins': hexbin_layer
 	};
 
 	L.control.layers(tile_layers, overlays).addTo(map);
-
-	// initialize d3
-	map._initPathRoot()
-	var svg = d3.select('#map').select("svg");
-	var g = svg.append("g");
 
 	// put the stations on
 	var station1 = null;
@@ -182,21 +193,12 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 	function hexbinStyle(hexagons) {
 		hexagons
 			.attr('stroke', 'black')
-			.attr('fill', function (e) {
-				return cscale(Math.random());
-			});
+			.attr('fill', function (e) { return cscale(Math.random()); });
 	}
 
-	var hexbinLayer;
 	bikeRideInterval.get_events_geojson('2014-06-01 00:00:00', '2014-06-02 00:00:00', '00:1:00:00', []).then(function (data) {
 		var data_subset = data['data']['12'];
-		console.log(data_subset);
-		hexbinLayer = L.hexbinLayer(data_subset, {
-			clamp: false,
-			style: hexbinStyle,
-			mouseover: function () { console.log('mouse over'); },
-			mouseout: function () { console.log('mouse out'); }
-		}).addTo(map);
+		hexbin_layer.setData(data_subset);
 	});
 
 	map.on('click', function (e) {
