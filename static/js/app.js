@@ -16,10 +16,15 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 	var sw = L.latLng(38.5439, -77.5896);
 	var ne = L.latLng(39.6268, -76.0597);
 	var bounds = L.latLngBounds(sw, ne);
-	var simple_grey = L.tileLayer('http://127.0.0.1:8080/simple_grey/{z}/{x}/{y}.png');
-	var simple = L.tileLayer('http://127.0.0.1:8080/simple/{z}/{x}/{y}.png');
-	var muted = L.tileLayer('http://127.0.0.1:8080/muted/{z}/{x}/{y}.png');
-
+	var simple_grey = L.tileLayer('http://127.0.0.1:8080/simple_grey/{z}/{x}/{y}.png', {
+		opacity: 0.3
+	});
+	var simple = L.tileLayer('http://127.0.0.1:8080/simple/{z}/{x}/{y}.png', {
+		opacity: 0.3
+	});
+	var muted = L.tileLayer('http://127.0.0.1:8080/muted/{z}/{x}/{y}.png', {
+		opacity: 0.3
+	});
 
 	var station_paths_layer = L.geoJson([], {
 		style: {
@@ -98,8 +103,7 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 			.attr('name', function (e) { return e.properties.name; });
 
 		/*
-		TOOLTIPS
-
+		// TOOLTIPS
 		$('svg circle.station-marker').tipsy({
 			gravity: 's',
 			html: true,
@@ -161,17 +165,38 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 		return rets
 	}
 
+	// put the heatmap on
 	bikeRideInterval.get_counts('2014-06-01 00:00:00', '2014-06-02 00:00:00', '00:1:00:00', []).then(function (data) {
 		var vals = values(data[12]);
-		console.log(vals);
 		var max = Math.max.apply(null, vals.map(function (e) { return e['count']; }));
-		console.log(max);
-		heat_data = data[12];
 		heatmap_layer.setData({
 			min: 0,
 			max: max,
 			data: values(data[12])
 		});
+	});
+
+	// put the hexbins on
+	var cscale = d3.scale.linear().domain([0, 1]).range(['white', 'black']).interpolate(d3.interpolateLab);
+
+	function hexbinStyle(hexagons) {
+		hexagons
+			.attr('stroke', 'black')
+			.attr('fill', function (e) {
+				return cscale(Math.random());
+			});
+	}
+
+	var hexbinLayer;
+	bikeRideInterval.get_events_geojson('2014-06-01 00:00:00', '2014-06-02 00:00:00', '00:1:00:00', []).then(function (data) {
+		var data_subset = data['data']['12'];
+		console.log(data_subset);
+		hexbinLayer = L.hexbinLayer(data_subset, {
+			clamp: false,
+			style: hexbinStyle,
+			mouseover: function () { console.log('mouse over'); },
+			mouseout: function () { console.log('mouse out'); }
+		}).addTo(map);
 	});
 
 	map.on('click', function (e) {

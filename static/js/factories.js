@@ -115,6 +115,9 @@ angular.module('mapApp.factories', [])
 		get_events: function (a, b, c, d) {
 			return get(a, b, c, d, '/bike_rides_interval_events');
 		},
+		get_events_geojson: function (a, b, c, d) {
+			return get(a, b, c, d, '/bike_rides_interval_events_geojson');
+		},
 		get_counts: function (a, b, c, d) {
 			return get(a, b, c, d, '/bike_rides_interval_counts');
 		}
