@@ -62,7 +62,6 @@ L.HexbinLayer = L.Class.extend({
 		this.map = map;
 		if (this.container == null) {
 			var overlayPane = this.map.getPanes().overlayPane;
-			console.log(overlayPane);
 			this.container = d3.select(overlayPane)
 				.append('svg')
 				.attr('id', 'hexbin-container')

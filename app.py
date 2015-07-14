@@ -345,6 +345,64 @@ def events_geojson():
 	return jsonify({ 'data': ret })
 
 
+@app.route('/checkins')
+def get_checkins():
+	t_start = request.args.get('t_start')
+	t_end = request.args.get('t_end')
+	start_dt = datetime.strptime(t_start, '%Y-%m-%d %H:%M:%S')
+	end_dt = datetime.strptime(t_end, '%Y-%m-%d %H:%M:%S')
+
+	checkins_query = """
+		select date, ST_AsGeoJSON(geom)
+		from checkins
+		where date >= '{0}' and date < '{1}'
+		order by date asc
+	""".format(t_start, t_end)
+	checkins = db_session.execute(checkins_query).fetchall()
+
+	ret = []
+	for c in checkins:
+		ret.append(Feature(
+			date=datetime.strftime(c[0], '%Y-%m-%d %H:%M:%S'),
+			geometry=json.loads(c[1])
+		))
+	return jsonify(FeatureCollection(ret))
+
+
+@app.route('/photos')
+def get_photos():
+	t_start = request.args.get('t_start')
+	t_end = request.args.get('t_end')
+	form = request.args.get('format')
+
+	photos_query = """
+		select date, ST_AsGeoJSON(geom)
+		from photos
+		where date >= '{0}' and date < '{1}'
+		order by date asc
+	""".format(t_start, t_end)
+	photos = db_session.execute(photos_query).fetchall()
+
+	ret = []
+	if form and form.lower() == 'geojson':
+		for p in photos:
+			ret.append(Feature(
+				date=datetime.strftime(p[0], '%Y-%m-%d %H:%M:%S'),
+				geometry=json.loads(p[1])
+			))
+		ret = FeatureCollection(ret)
+	else:
+		for p in photos:
+			coords = json.loads(p[1])['coordinates']
+			ret.append({
+				'date': datetime.strftime(p[0], '%Y-%m-%d %H:%M:%S'),
+				'lng': coords[0],
+				'lat': coords[1]
+			})
+		ret = { 'data': ret }
+	return jsonify(ret)
+
+
 if __name__ == '__main__':
 	app.run()
 
