@@ -5,7 +5,7 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 	return 0;
 })
 
-.controller('MapController', function ($scope, $timeout, $rootScope, $q, bikeRides, stationData, bikeDirections, bikeRideInterval) {
+.controller('MapController', function ($scope, $timeout, $rootScope, $q, bikeRides, stationData, bikeDirections, bikeRideInterval, photosFactory) {
 	var center = {
 		lat: 38.888928,
 		lng: -77.034136,
@@ -17,13 +17,13 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 	var ne = L.latLng(39.6268, -76.0597);
 	var bounds = L.latLngBounds(sw, ne);
 	var simple_grey = L.tileLayer('http://127.0.0.1:8080/simple_grey/{z}/{x}/{y}.png', {
-		opacity: 0.6
+		opacity: 0.8
 	});
 	var simple = L.tileLayer('http://127.0.0.1:8080/simple/{z}/{x}/{y}.png', {
-		opacity: 0.6
+		opacity: 0.8
 	});
 	var muted = L.tileLayer('http://127.0.0.1:8080/muted/{z}/{x}/{y}.png', {
-		opacity: 0.6
+		opacity: 0.8
 	});
 
 	var map = L.map('map', {
@@ -44,7 +44,7 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 			className: 'station-path'
 		}
 	}).on('click', function () {
-		console.log('clicked geojson');
+		console.log('clicked the path geojson layer');
 	});
 
 	var heatmap_layer = new HeatmapOverlay({
@@ -70,19 +70,23 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 			.attr('fill', function (e) { return cscale(Math.random()); });
 	}
 
+	/* STATIONS */
+
 	// initialize d3
 	map._initPathRoot();
 	var svg = d3.select('#map').select("svg");
 	var g = svg.append("g");
+
+	/* STATIONS */
 
 	var hexbin_layer = L.hexbinLayer(null, {
 		radius: 10,
 		opacity: 1,
 		clamp: false,
 		style: hexbinStyle,
-		mouseover: function () { console.log('mouse over'); },
-		mouseout: function () { console.log('mouse out'); },
-		click: function () { console.log('click'); }
+		mouseover: function () { },
+		mouseout: function () { },
+		click: function () { }
 	}).addTo(map);
 
 	map.addLayer(heatmap_layer);
@@ -104,14 +108,12 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 
 	L.control.layers(tile_layers, overlays).addTo(map);
 
+	/* STATIONS */
+
 	// put the stations on
 	var station1 = null;
 	var station2 = null;
 	stationData.get().then(function (data) {
-		data.features.forEach(function (e) {
-			e.latLng = new L.latLng(e.geometry.coordinates[1], e.geometry.coordinates[0]);
-		});
-
 		var feature = g.selectAll('circle')
 			.data(data.features)
 			.enter().append('circle')
@@ -144,9 +146,8 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 
 		function update () {
 			feature.attr('transform', function (e) {
-				return "translate(" +
-					map.latLngToLayerPoint(e.latLng).x + "," + 
-					map.latLngToLayerPoint(e.latLng).y + ")";
+				var mapPoint = map.latLngToLayerPoint(new L.latLng(e.geometry.coordinates[1], e.geometry.coordinates[0]));
+				return "translate(" + mapPoint.x + "," + mapPoint.y + ")";
 			});
 		}
 
@@ -175,6 +176,8 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 		station_paths_layer.clearLayers();
 	}
 
+	/* STATIONS */
+
 	function values(o) {
 		rets = [];
 		for (var n in o) {
@@ -184,7 +187,7 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 	}
 
 	// put the heatmap on
-	bikeRideInterval.get_counts('2014-06-01 00:00:00', '2014-06-02 00:00:00', '00:1:00:00', []).then(function (data) {
+	bikeRideInterval.get_counts('2012-06-01 00:00:00', '2012-06-02 00:00:00', '00:1:00:00', []).then(function (data) {
 		var vals = values(data[12]);
 		var max = Math.max.apply(null, vals.map(function (e) { return e['count']; }));
 		heatmap_layer.setData({
@@ -195,7 +198,7 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 	});
 
 	// put the hexbins on
-	bikeRideInterval.get_events_geojson('2014-06-01 00:00:00', '2014-06-02 00:00:00', '00:1:00:00', []).then(function (data) {
+	bikeRideInterval.get_events_geojson('2012-06-01 00:00:00', '2012-06-02 00:00:00', '00:1:00:00', []).then(function (data) {
 		var data_subset = data['data']['12'];
 		hexbin_layer.setData(data_subset);
 	});
@@ -206,8 +209,104 @@ angular.module('mapApp', ['mapApp.factories', 'ngMaterial'])
 		}
 	});
 
-	map.on('zoomend', function (e) {
-		// console.log(e);
+})
+
+.controller('CrossfilterController', function ($scope, $timeout, photosFactory) {
+	photosFactory.get('2012-06-01 00:00:00', '2012-07-01 00:00:00').then(function (data) {
+		// for instant response times
+		dc.constants.EVENT_DELAY = 35;
+
+		var photos;
+		var dateDimension;
+		var dates;
+		var hourDimension;
+		var hours;
+		var charts;
+
+		data.data.forEach(function (e) {
+			e.date = new Date(e.date);
+		});
+		photos = crossfilter(data.data);
+		dateDimension = photos.dimension(function (e) { return e.date; });
+		hourDimension = photos.dimension(function (e) { return e.date.getHours() + e.date.getMinutes() / 60; });
+		dates = dateDimension.group(d3.time.day);
+		hours = hourDimension.group(Math.floor);
+
+		var firstDate = dateDimension.bottom(1)[0].date;
+		var lastDate = dateDimension.top(1)[0].date;
+		var daysDifference = (lastDate - firstDate) / 1000 / 60 / 60 / 24;
+
+		console.log('before the charts');
+
+		// this is coming from dc.js, a crossfilter charting library
+		// if it turns out it's not enough to connect to d3 as well
+		// as we want, we can just reimplement the crossfilter
+		// example (only bar charts but the rest can be ported)
+		var hourChart = dc.barChart('#hour-chart')
+			.width(480)
+			.height(150)
+			.margins({top: 10, right: 10, bottom: 20, left: 40})
+			.dimension(hourDimension)
+			.group(hours.reduceCount())
+			// alternatively hours.reduceSum(function (t) {return f(t); })
+			.transitionDuration(100)
+			.centerBar(true)
+			.gap(0)
+			.x(d3.scale.linear()
+				.domain([0, 24]))
+				// .rangeRound([0, 10 * 24]))  maybe if needed
+			.elasticY(false)
+			.xAxis().tickFormat(function (v) { return v; });
+
+		var dateChart = dc.barChart('#date-chart')
+			.width(640)
+			.height(150)
+			.margins({top: 10, right: 10, bottom: 20, left: 40})
+			.dimension(dateDimension)
+			.group(dates.reduceCount())
+			.transitionDuration(100)
+			.centerBar(true)
+			.gap(-18.5)
+			.x(d3.time.scale()
+				.domain([firstDate, lastDate]))
+			.elasticY(false)
+			.xAxis().tickFormat(function (v) { return v.getMonth() + '-' + v.getDate(); });
+
+		dc.renderAll();
+
+		/* ***************
+
+		// AN INTERLUDE ON CROSSFILTER
+
+		photos.groupAll().reduceSum(function (e) { return e.val; }).value();
+		var dateDimension = photos.dimension(function (e) { return e.date; });
+		dateDimension.filter('2012-02-01 00:00:00');
+		// now all operations are run on the filtered data
+		photos.groupAll().reduceCount().value();
+		// to clear the filters
+		dateDimension.filterAll();
+		var countMeasure = dateDimension.group().reduceSum(function () { return 1; });
+		var a = countMeasure.top(countMeasure.size());
+		// equivalent to countMeasure.all();
+		// countMeasure now is an array of {key:, value:} objects,
+		// key being name of group, value returned by the measure
+		// what about filtering on ranges instead of specific values?
+		dateDimension.filter([date1, date2]);
+		dateDimension.filter(function (e) { return e.date == date1; });
+		// removing filters is important, they are very expensive, and it's
+		// not practical to have more than 8
+		dateDimension.dispose();
+
+		photos.add(data);  // adds data
+		photos.remove();  // removes all records matching the current filter
+		
+		*************** */
 	});
 
 });
+
+
+
+
+
+

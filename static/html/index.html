@@ -11,6 +11,7 @@
 	<script type="text/javascript" src='static/js/d3.js'></script>
 	<script type="text/javascript" src='static/js/d3-hexbin.js'></script>
 	<script type="text/javascript" src='static/js/simple-statistics.js'></script>
+	<script type="text/javascript" src='static/js/dc.js'></script>
 
 	<script type="text/javascript" src='static/js/mapbox.js'></script>
 	<script type="text/javascript" src='static/js/heatmap.js'></script>
@@ -26,6 +27,7 @@
 	<script type="text/javascript" src='static/js/app.js'></script>
 
 	<link rel="stylesheet" href="static/css/angular-material.css"/>
+	<link rel="stylesheet" type="text/css" href="static/css/dc.css">
 	<link rel="stylesheet" type="text/css" href="static/css/tipsy.css">
 	<link rel="stylesheet" type="text/css" href='static/css/mapbox.css'></link>
 	<link rel="stylesheet" type="text/css" href='static/css/main.css'></link>
@@ -43,6 +45,24 @@
 						<md-tab-body class='md-padding'>
 							<div id='map-container' ng-controller='MapController'>
 								<div id="map"></div>
+							</div>
+						</md-tab-body>
+					</md-tab>
+
+					<md-tab label='two'>
+						<md-tab-label>
+							Station Map
+						</md-tab-label>
+						<md-tab-body class='md-padding'>
+							<div id='charts-container' ng-controller='CrossfilterController'>
+								<div id='charts'>
+									<div id='hour-chart' class='chart'>
+										<div>Hour</div>
+									</div>
+									<div id='date-chart' class='chart'>
+										<div>Date</div>
+									</div>
+								</div>
 							</div>
 						</md-tab-body>
 					</md-tab>
