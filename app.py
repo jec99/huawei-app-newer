@@ -70,7 +70,7 @@ def get_geojson():
 
 
 @app.route('/rides/<int:start>/<int:end>')
-def get_rides(start, end):
+def get_rides_specific(start, end):
 	rets = []
 	rds = db_session.query(BikeRide).filter(
 		(BikeRide.start_station_id == start) & (BikeRide.end_station_id == end)
@@ -349,58 +349,79 @@ def events_geojson():
 def get_checkins():
 	t_start = request.args.get('t_start')
 	t_end = request.args.get('t_end')
-	start_dt = datetime.strptime(t_start, '%Y-%m-%d %H:%M:%S')
-	end_dt = datetime.strptime(t_end, '%Y-%m-%d %H:%M:%S')
 
 	checkins_query = """
-		select date, ST_AsGeoJSON(geom)
+		select date, ST_X(geom), ST_Y(geom)
 		from checkins
 		where date >= '{0}' and date < '{1}'
 		order by date asc
 	""".format(t_start, t_end)
 	checkins = db_session.execute(checkins_query).fetchall()
 
-	ret = []
-	for c in checkins:
-		ret.append(Feature(
-			date=datetime.strftime(c[0], '%Y-%m-%d %H:%M:%S'),
-			geometry=json.loads(c[1])
-		))
-	return jsonify(FeatureCollection(ret))
+	ret = [{
+		'date': datetime.strftime(c[0], '%Y-%m-%d %H:%M:%S'),
+		'lng': c[1],
+		'lat': c[2]
+	} for c in checkins]
+	return jsonify({'data': ret})
 
 
 @app.route('/photos')
 def get_photos():
 	t_start = request.args.get('t_start')
 	t_end = request.args.get('t_end')
-	form = request.args.get('format')
 
 	photos_query = """
-		select date, ST_AsGeoJSON(geom)
+		select date, ST_X(geom), ST_Y(geom)
 		from photos
 		where date >= '{0}' and date < '{1}'
 		order by date asc
 	""".format(t_start, t_end)
 	photos = db_session.execute(photos_query).fetchall()
 
-	ret = []
-	if form and form.lower() == 'geojson':
-		for p in photos:
-			ret.append(Feature(
-				date=datetime.strftime(p[0], '%Y-%m-%d %H:%M:%S'),
-				geometry=json.loads(p[1])
-			))
-		ret = FeatureCollection(ret)
-	else:
-		for p in photos:
-			coords = json.loads(p[1])['coordinates']
-			ret.append({
-				'date': datetime.strftime(p[0], '%Y-%m-%d %H:%M:%S'),
-				'lng': coords[0],
-				'lat': coords[1]
-			})
-		ret = { 'data': ret }
-	return jsonify(ret)
+	ret = [{
+		'date': datetime.strftime(p[0], '%Y-%m-%d %H:%M:%S'),
+		'lng': p[1],
+		'lat': p[2]
+	} for p in photos]
+	return jsonify({'data': ret})
+
+
+@app.route('/stations')
+def get_stations():
+	stations_query = """
+		select id, ST_X(geom), ST_Y(geom) from bike_stations order by id asc
+	"""
+	stations = db_session.execute(stations_query).fetchall()
+
+	ret = [{
+		'id': s[0],
+		'lng': s[1],
+		'lat': s[2]
+	} for s in stations]
+	return jsonify({'data': ret})
+
+
+@app.route('/rides')
+def get_rides():
+	t_start = request.args.get('t_start')
+	t_end = request.args.get('t_end')
+
+	rides_query = """
+		select start_station_id, end_station_id, start_date, duration, subscribed
+		from bike_rides
+		where start_date >= '{0}' and start_date < '{1}'
+	""".format(t_start, t_end)
+	rides = db_session.execute(rides_query).fetchall()
+
+	ret = [{
+		'start_id': r[0],
+		'end_id': r[1],
+		'date': datetime.strftime(r[2], '%Y-%m-%d %H:%M:%S'),
+		'duration': r[3],
+		'subscribed': r[4]
+	} for r in rides]
+	return jsonify({'data': ret})
 
 
 if __name__ == '__main__':

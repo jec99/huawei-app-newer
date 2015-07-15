@@ -157,9 +157,51 @@ angular.module('mapApp.factories', [])
 				url: '/photos',
 				params: {
 					t_start: start,
+					t_end: end
+				}
+			}).success(function (data, status, headers, response) {
+				deferred.resolve(data);
+			}).error(function (data, status, headers, response) {
+				deferred.reject(status);
+			});
+
+			return deferred.promise;
+		}
+	}
+})
+
+.factory('ridesFactory', function ($q, $http) {
+	return {
+		get: function (start, end) {
+			// YYYY-mm-dd HH:MM:SS
+			var deferred = $q.defer();
+			$http({
+				method: 'GET',
+				url: '/rides',
+				params: {
+					t_start: start,
 					t_end: end,
 					form: 'array'
 				}
+			}).success(function (data, status, headers, response) {
+				deferred.resolve(data);
+			}).error(function (data, status, headers, response) {
+				deferred.reject(status);
+			});
+
+			return deferred.promise;
+		}
+	}
+})
+
+.factory('stationsFactory', function ($q, $http) {
+	return {
+		get: function () {
+			// YYYY-mm-dd HH:MM:SS
+			var deferred = $q.defer();
+			$http({
+				method: 'GET',
+				url: '/stations',
 			}).success(function (data, status, headers, response) {
 				deferred.resolve(data);
 			}).error(function (data, status, headers, response) {
