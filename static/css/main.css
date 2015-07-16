@@ -53,7 +53,7 @@ body {
 /* TABS */
 
 #primary-container {
-	width: 834px;
+	width: 1000px;
 }
 
 md-content {
@@ -73,6 +73,55 @@ md-content h1:first-child {
 	margin-top: 0;
 }
 
-#charts-container {
-	height: 600px;
+
+/* CHARTS */
+
+#charts {
+	padding: 10px 0;
 }
+
+.crossfitler-chart {
+	display: inline-block;
+	height: 150px;
+	margin-bottom: 20px;
+}
+
+.background.bar {
+	/* color of bars not selected by brush */
+	fill: #ccc;
+}
+
+.foreground.bar {
+ 	fill: steelblue;
+}
+
+.axis path, .axis line {
+	fill: none;
+	stroke: #000;
+	shape-rendering: crispEdges;
+}
+
+.brush rect.extent {
+	fill: steelblue;
+	fill-opacity: .125;
+}
+
+/*
+.brush .resize path {
+	fill: #eee;
+	stroke: #666;
+}
+*/
+
+#hour-chart {
+	width: 260px;
+}
+
+#date-chart {
+	width: 260px;
+}
+
+#duration-chart {
+	width: 420px;
+}
+

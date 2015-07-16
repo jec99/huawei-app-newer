@@ -39,8 +39,32 @@
 	<div id='primary-container'>
 		<div id='main-tabs-container'>
 			<md-content class='md-padding'>
-				<md-tabs md-dynamic-height='false' md-selected='3'>
-					<md-tab label='one'>
+				<md-tabs md-dynamic-height='false' md-selected='0'>
+					<md-tab label='two'>
+						<md-tab-label>
+							Rides Crossfilter (new)
+						</md-tab-label>
+						<md-tab-body class='md-padding'>
+							<div id='crossfilter-custom-container' ng-controller='CrossfilterController'>
+								<div id="charts">
+									<!-- <div id='scatterplot' class='scatter'></div> -->
+									<div id='hour-chart' class='crossfilter-chart'>
+										<div class='title'>Hour</div>
+									</div>
+									<div id='date-chart' class='crossfilter-chart'>
+										<div class='title'>Date</div>
+									</div>
+									<div id='duration-chart' class='crossfilter-chart'>
+										<div class='title'>Duration</div>
+									</div>
+									<!-- <div id='subscribed-chart' class='crossfilter-chart'></div> -->
+									<!-- <div id='start-station-chart' class='crossfilter-chart'></div> -->
+								</div>
+							</div>
+						</md-tab-body>
+					</md-tab>
+
+					<md-tab label='two'>
 						<md-tab-label>
 							Station Map
 						</md-tab-label>
@@ -51,7 +75,7 @@
 						</md-tab-body>
 					</md-tab>
 
-					<md-tab label='two'>
+					<md-tab label='three'>
 						<md-tab-label>
 							Photos Crossfilter
 						</md-tab-label>
@@ -69,7 +93,7 @@
 						</md-tab-body>
 					</md-tab>
 
-					<md-tab label='two'>
+					<md-tab label='four'>
 						<md-tab-label>
 							Rides Crossfilter
 						</md-tab-label>
