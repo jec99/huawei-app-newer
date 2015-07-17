@@ -121,8 +121,8 @@ md-content h1:first-child {
 
 /* GRAPH */
 
+
 #scatterplot .overlay {
-	/* maybe not necessary */
 	fill: none;
 	pointer-events: all;
 }
@@ -130,11 +130,4 @@ md-content h1:first-child {
 #scatterplot {
 	margin: 0px 10px;
 	border: 1px solid #444;
-}
-
-#scatterplot .axis path,
-#scatterplot .axis line {
-	fill: none;
-	stroke: #000;
-	shape-rendering: crispEdges;
 }

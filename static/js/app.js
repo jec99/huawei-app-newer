@@ -12,8 +12,8 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 .controller('CrossfilterController', function ($rootScope, $scope, $q, $timeout, ridesFactory, stationsFactory) {
 	var t_start = '2012-06-01 00:00:00';
 	var t_end = '2012-06-15 00:00:00';
-	var center = [-77.034136, 38.888928];
-	var bounds = [[-77.2, 38.8], [-76.8, 39.1]];
+	var map_center = [-77.034136, 38.843928];
+	var map_radius = 0.4;
 	var daysOfWeek = ['Su', 'M', 'T', 'W', 'Th', 'F', 'S'];
 	
 	$q.all([
@@ -28,51 +28,9 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				lat: x.lat
 			};
 		}
-
-		/* CREATING THE GRAPH/SCATTERPLOT */
-
-		var scatter_width = 944,
-				scatter_height = 603;
-
-		var stations_list = d3.values(stations);
-		var xScatter = d3.scale.linear()
-			.domain([bounds[0][0], bounds[1][0]])
-			.range([0, scatter_width]);
-		var yScatter = d3.scale.linear()
-			.domain([bounds[0][1], bounds[1][1]])
-			.range([scatter_height * Math.cos(center[1] / 180 * Math.PI), 0]);
-			// .range([0, height]);
-
-		var svg = d3.select('#scatterplot').append('svg')
-			.attr('width', scatter_width)
-			.attr('height', scatter_height)
-			.append('g')
-			// zoomy bits - d3.call calls the function with the current this?
-			.call(d3.behavior.zoom()
-				.x(xScatter)
-				.y(yScatter)
-				.scaleExtent([1, 8])
-				.on('zoom', zoom));
-
-		svg.append('rect')
-			.attr('class', 'overlay')
-			.attr('width', scatter_width)
-			.attr('height', scatter_height);
-
-		var circle = svg.selectAll('circle')
-			.data(stations_list)
-			.enter().append('circle')
-			.attr('r', function () { return Math.ceil(Math.random() * 3); })
-			.attr('transform', transform);
-
-		function zoom () {
-			circle.attr('transform', transform);
-		}
-
-		function transform (e) {
-			// do semantic zooming stuff here, e.g.
-			var sc = d3.event ? Math.sqrt(d3.event.scale) : 1;
-			return 'translate(' + xScatter(e.lng) + ',' + yScatter(e.lat) + ')scale(' + sc + ')';
+		stations_list = [];
+		for (var x in stations) {
+			stations_list.push({ id: x, lng: stations[x].lng, lat: stations[x].lat });
 		}
 
 		data[1].data.forEach(function (e) {
@@ -92,6 +50,198 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				durations = duration.group(function (d) { return Math.floor(d / (5 * 60)); }),
 				subscriptions = subscribed.group(),
 				start_stations = start_station.group();
+
+		/* CREATING THE GRAPH/SCATTERPLOT */
+
+		var scatter_width = 944,
+				scatter_height = 603,
+				// bounds = [[-77.285, 38.77], [-76.809, 39.14]],
+				bounds = [
+					[map_center[0] - map_radius, map_center[1] - map_radius * Math.cos(map_center[1] / 180 * Math.PI)],
+					[map_center[0] + map_radius, map_center[1] + map_radius * Math.cos(map_center[1] / 180 * Math.PI)]
+				]
+				div = '.crossfilter-scatter';
+		
+		var scatter_charts = [
+			scatterPlot()
+				.width(scatter_width)
+				.height(scatter_height)
+				.x(d3.scale.linear()
+					.domain([bounds[0][0], bounds[1][0]])
+					.range([0, scatter_width]))
+				.y(d3.scale.linear()
+					.domain([bounds[0][1], bounds[1][1]])
+					// not scatter_height because of scaling reasons
+					.range([scatter_width, 0]))
+				.r(function (x) { return Math.sqrt(x) + 1; })
+				.zoomRange([1, 8])
+				.dimension(start_station)
+				.group(start_stations)
+				.points(stations_list)
+				.coordinates(function (d) { return [d.lng, d.lat]; })
+		];
+
+		var scatter_chart = d3.select(div)
+			.data(scatter_charts);
+
+		function scatterPlot () {
+			if (!scatterPlot.id) {
+				scatterPlot.id = 0;
+			}
+
+			var x,
+					y,
+					r,
+					width,
+					height,
+					zoomRange,
+					dimension,
+					group,
+					// selected = [],
+					id = scatterPlot.id++,
+					circle,
+					points,
+					coordinates;
+
+			function chart (div) {
+				div.each(function () {
+					var div = d3.select(this),
+							g = div.select('g')
+
+					if (g.empty()) {
+						g = div.append('svg')
+							.attr('width', width)
+							.attr('height', height)
+							.append('g')
+							.call(d3.behavior.zoom()
+								.x(x)
+								.y(y)
+								.scaleExtent(zoomRange)
+								.on('zoom', zoom));
+						g.append('rect')
+							.attr('class', 'overlay')
+							.attr('width', width)
+							.attr('height', height);
+
+						circle = g.selectAll('circle')
+							.data(points)
+							.enter().append('circle');	
+					}
+
+					circle
+						.attr('r', function () { return Math.random() * 2 + 1; })
+						.attr('transform', transform);
+				});
+
+				function zoom () {
+					circle.attr('transform', transform);
+				}
+
+				function transform (d) {
+					var coords = coordinates(d);
+					var scaling = d3.event ? Math.sqrt(d3.event.scale) : zoomRange[0];
+					return 'translate(' + x(coords[0]) + ',' + y(coords[1]) + ')scale(' + scaling + ')';
+				}
+			}
+
+			chart.rerender = function () {
+				// preprocessing; can't modify the group sadly
+				// but this is what, <363 items? in linear time?
+				// lol
+				var hash = group.all().reduce(function (o, g) {
+					o[g.key] = g.value;
+					return o;
+				}, {});
+
+				// console.log(hash);
+				circle.attr('r', function (d) {
+					return hash[d.id] ? Math.sqrt(hash[d.id]) + 1 : 1;
+				});
+			};
+
+			chart.x = function (_) {
+				if (!arguments.length) {
+					return x;
+				}
+				x = _;
+				return chart;
+			};
+
+			chart.y = function (_) {
+				if (!arguments.length) {
+					return y;
+				}
+				y = _;
+				return chart; 
+			};
+
+			chart.dimension = function (_) {
+				if (!arguments.length) {
+					return dimension;
+				}
+				dimension = _;
+				return chart;
+			};
+
+			chart.group = function (_) {
+				if (!arguments.length) {
+					return group;
+				}
+				group = _;
+				return chart;
+			};
+
+			chart.width = function (_) {
+				if (!arguments.length) {
+					return width;
+				}
+				width = _;
+				return chart;
+			};
+
+			chart.height = function (_) {
+				if (!arguments.length) {
+					return height;
+				}
+				height = _;
+				return chart;
+			};
+
+			chart.zoomRange = function (_) {
+				if (!arguments.length) {
+					return zoomRange;
+				}
+				zoomRange = _;
+				return chart;
+			};
+
+			chart.r = function (_) {
+				if (!arguments.length) {
+					return r;
+				}
+				r = _;
+				return chart;
+			};
+
+			chart.coordinates = function (_) {
+				if (!arguments.length) {
+					return coordinates;
+				}
+				coordinates = _;
+				return chart;
+			};
+
+			chart.points = function (_) {
+				if (!arguments.length) {
+					return points;
+				}
+				points = _;
+				return chart;
+			};
+
+			return chart;
+		}
+	
 
 		/* CREATING THE CHARTS */
 		// same order as in the html
@@ -131,6 +281,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				chart.on('brush', renderAll).on('brushend', renderAll);
 			});
 
+		scatter_chart.each(render);
 		renderAll();
 
 		function render (method) {
@@ -139,7 +290,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 
 		function renderAll () {
 			chart.each(render);
-			// more things here!
+			scatter_chart.each(function (sc) { render(sc.rerender); });
 		}
 
 		function barChart () {
@@ -227,6 +378,8 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 					g.selectAll('.bar').attr('d', barPath);
 				});
 
+				// hacky and bad; doesn't create bar objects, just one huge bar,
+				// and makes a long path. kinda bad actually
 				function barPath (groups) {
 					var path = [];
 					for (var i = 0; i < groups.length; i++) {
