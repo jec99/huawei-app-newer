@@ -9,14 +9,13 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 // credit for a lot of the charting code goes to the good people
 // of Crossfitler, over at Square, with inspiration from the
 // people at dc.js
-.controller('CrossfilterController', function ($scope, $q, $timeout, ridesFactory, stationsFactory) {
+.controller('CrossfilterController', function ($rootScope, $scope, $q, $timeout, ridesFactory, stationsFactory) {
 	var t_start = '2012-06-01 00:00:00';
 	var t_end = '2012-06-15 00:00:00';
 	var center = [-77.034136, 38.888928];
 	var bounds = [[-77.2, 38.8], [-76.8, 39.1]];
-
-	// zoom's not working in dc so i'm going to roll it myself
-	// going through the dc source code is literally hell
+	var daysOfWeek = ['Su', 'M', 'T', 'W', 'Th', 'F', 'S'];
+	
 	$q.all([
 		stationsFactory.get(),
 		ridesFactory.get(t_start, t_end)
@@ -30,18 +29,56 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 			};
 		}
 
+		/* CREATING THE GRAPH/SCATTERPLOT */
+
+		var scatter_width = 944,
+				scatter_height = 603;
+
+		var stations_list = d3.values(stations);
+		var xScatter = d3.scale.linear()
+			.domain([bounds[0][0], bounds[1][0]])
+			.range([0, scatter_width]);
+		var yScatter = d3.scale.linear()
+			.domain([bounds[0][1], bounds[1][1]])
+			.range([scatter_height * Math.cos(center[1] / 180 * Math.PI), 0]);
+			// .range([0, height]);
+
+		var svg = d3.select('#scatterplot').append('svg')
+			.attr('width', scatter_width)
+			.attr('height', scatter_height)
+			.append('g')
+			// zoomy bits - d3.call calls the function with the current this?
+			.call(d3.behavior.zoom()
+				.x(xScatter)
+				.y(yScatter)
+				.scaleExtent([1, 8])
+				.on('zoom', zoom));
+
+		svg.append('rect')
+			.attr('class', 'overlay')
+			.attr('width', scatter_width)
+			.attr('height', scatter_height);
+
+		var circle = svg.selectAll('circle')
+			.data(stations_list)
+			.enter().append('circle')
+			.attr('r', function () { return Math.ceil(Math.random() * 3); })
+			.attr('transform', transform);
+
+		function zoom () {
+			circle.attr('transform', transform);
+		}
+
+		function transform (e) {
+			// do semantic zooming stuff here, e.g.
+			var sc = d3.event ? Math.sqrt(d3.event.scale) : 1;
+			return 'translate(' + xScatter(e.lng) + ',' + yScatter(e.lat) + ')scale(' + sc + ')';
+		}
+
 		data[1].data.forEach(function (e) {
 			e.date = new Date(e.date);
 		});
 
-		var e = data[1].data[data[1].data.length - 1];
-		console.log(e.date);
-		console.log(e.date.getHours() + e.date.getMinutes() / 60);
-
-		// duration is in seconds
-		// want to group as (in minutes)
-		//   [0, 5, 10, 15, ...]
-		//   [0, 5, 10, 15, 30, 60, infinity]
 		var rides = crossfilter(data[1].data);
 
 		var date = rides.dimension(function (e) { return e.date; }),
@@ -56,14 +93,17 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				subscriptions = subscribed.group(),
 				start_stations = start_station.group();
 
-		// same order as in html
+		/* CREATING THE CHARTS */
+		// same order as in the html
 		var charts = [
 			barChart()
 				.dimension(hour)
 				.group(hours)
+				// .round(Math.floor)
 				.x(d3.scale.linear()
 					.domain([0, 24])
-					.rangeRound([0, 10 * 24])),
+					.rangeRound([0, 10 * 24]))
+				.tickFormat(function (e) { return e % 4 == 0 ? e : null; }),
 
 			barChart()
 				.dimension(date)
@@ -71,16 +111,20 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				.round(d3.time.day.round)
 				.x(d3.time.scale()
 					.domain([new Date(t_start), new Date(t_end)])
-					.rangeRound([0, 10 * 90])),
+					.rangeRound([0, 10 * 42]))
+				.tickFormat(function (e) { return daysOfWeek[e.getDay()]; }),
 
 			barChart()
 				.dimension(duration)
 				.group(durations)
+				.round(Math.round)
 				.x(d3.scale.linear()
 					.domain([0, 40])
 					.rangeRound([0, 10 * 40]))
+				.tickFormat(function (e) { return e * 5; })
 		];
 
+		// this part is the one that controls the order of the charts
 		var chart = d3.selectAll('.crossfilter-chart')
 			.data(charts)
 			.each(function (chart) {
@@ -112,7 +156,8 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 					brushDirty,
 					dimension,
 					group,
-					round;
+					round,
+					barWidth = 9;
 
 			function chart (div) {
 				var width = x.range()[1],
@@ -141,6 +186,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 							.attr('width', width)
 							.attr('height', height);
 
+						// hacky
 						g.selectAll('.bar')
 							.data(['background', 'foreground'])
 							.enter().append('path')
@@ -159,7 +205,6 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 							.attr('class', 'brush')
 							.call(brush);
 						gBrush.selectAll('rect').attr('height', height);
-						gBrush.selectAll('.resize').append('path').attr('d', resizePath);
 					}
 
 					// for redrawing the brush externally, that is,
@@ -188,34 +233,16 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 						var d = groups[i];
 						// this draws the bars based on the group
 						// must return an appropriate key and value
-						path.push('M', x(d.key), ',', height, 'V', y(d.value), 'h9V', height);
+
+						// the 9 part controls the width of the bars
+						path.push('M', x(d.key), ',', height, 'V', y(d.value), 'h' + barWidth + 'V', height);
 					}
 					return path.join('');
-				}
-
-				function resizePath (d) {
-					var e = +(d == 'e'),
-							x = e ? 1 : -1,
-							y = height / 3;
-					// apparently this is SVG path information
-					// see w3schools
-					// return 'M' + (.5 * x) + ',' + y
-					// 	+ 'A6,6 0 0 ' + e + ' ' + (6.5 * x) + ',' + (y + 6)
-					// 	+ 'V' + (2 * y - 6)
-					// 	+ 'A6,6 0 0 ' + e + ' ' + (.5 * x) + ',' + (2 * y)
-					// 	+ 'Z'
-					// 	+ 'M' + (2.5 * x) + ',' + (y + 8)
-					// 	+ 'V' + (2 * y - 8)
-					// 	+ 'M' + (4.5 * x) + ',' + (y + 8)
-					// 	+ 'V' + (2 * y - 8);
-					return '';
 				}
 			}
 
 			brush.on('brushstart.chart', function () {
 				var div = d3.select(this.parentNode.parentNode.parentNode);
-				console.log(div);
-				console.log(d3.select(this));
 			});
 
 			brush.on('brush.chart', function () {
@@ -224,9 +251,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				if (round) {
 					extent = extent.map(round);
 					g.select('.brush')
-						.call(brush.extent(extent))
-						.selectAll('.resize')
-						.style('display', null);
+						.call(brush.extent(extent));
 				}
 				g.select('#clip-' + id + ' rect')
 					.attr('x', x(extent[0]))
@@ -250,7 +275,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				}
 				margin = _;
 				return chart;
-			}
+			};
 
 			chart.x = function (_) {
 				if (!arguments.length) {
@@ -260,7 +285,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				axis.scale(x);
 				brush.x(x);
 				return chart;
-			}
+			};
 
 			chart.y = function (_) {
 				if (!arguments.length) {
@@ -268,7 +293,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				}
 				y = _;
 				return chart; 
-			}
+			};
 
 			chart.dimension = function (_) {
 				if (!arguments.length) {
@@ -276,7 +301,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				}
 				dimension = _;
 				return chart;
-			}
+			};
 
 			chart.filter = function (_) {
 				if (_) {
@@ -288,7 +313,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				}
 				brushDirty = true;
 				return chart;
-			}
+			};
 
 			chart.group = function (_) {
 				if (!arguments.length) {
@@ -296,7 +321,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				}
 				group = _;
 				return chart;
-			}
+			};
 
 			chart.round = function (_) {
 				if (!arguments.length) {
@@ -304,7 +329,20 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				}
 				round = _;
 				return chart;
-			}
+			};
+
+			chart.tickFormat = function (tf) {
+				axis.tickFormat(tf);
+				return chart;
+			};
+
+			chart.barWidth = function (_) {
+				if (!arguments.length) {
+					return barWidth;
+				}
+				barWidth = _;
+				return chart;
+			};
 
 			return d3.rebind(chart, brush, 'on');
 		}

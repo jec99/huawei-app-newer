@@ -106,22 +106,35 @@ md-content h1:first-child {
 	fill-opacity: .125;
 }
 
-/*
-.brush .resize path {
-	fill: #eee;
-	stroke: #666;
-}
-*/
-
 #hour-chart {
 	width: 260px;
 }
 
 #date-chart {
-	width: 260px;
+	width: 420px;
 }
 
 #duration-chart {
 	width: 420px;
 }
 
+
+/* GRAPH */
+
+#scatterplot .overlay {
+	/* maybe not necessary */
+	fill: none;
+	pointer-events: all;
+}
+
+#scatterplot {
+	margin: 0px 10px;
+	border: 1px solid #444;
+}
+
+#scatterplot .axis path,
+#scatterplot .axis line {
+	fill: none;
+	stroke: #000;
+	shape-rendering: crispEdges;
+}

@@ -1,6 +1,6 @@
 from flask import Flask, request, session, g, redirect, url_for, Response, \
 	abort, render_template, flash, jsonify, send_from_directory
-
+from flask.ext.compress import Compress
 from sqlalchemy import create_engine, func, and_, or_
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
@@ -38,6 +38,8 @@ db_session_routing = scoped_session(sessionmaker(
 
 
 app = Flask(__name__)
+# if v. slow on large files
+# Compress(app)
 app.config.from_object(__name__)
 
 
