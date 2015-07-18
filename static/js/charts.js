@@ -65,16 +65,18 @@ function scatterPlot () {
 	}
 
 	chart.rerender = function () {
-		// preprocessing; can't modify the group sadly
-		// but this is what, <363 items? in linear time?
-		// lol i
-		var hash = config.group.all().reduce(function (o, g) {
-			o[g.key] = g.value;
-			return o;
-		}, {});
+		// the graph will be initialized before the data gets in,
+		// so we need to check to see if config.group has been set yet
+		var hash = {};
+		if (config.group) {
+			hash = config.group.all().reduce(function (o, g) {
+				o[g.key] = g.value;
+				return o;
+			}, {});
+		}
 
 		circle.attr('r', function (d) {
-			return hash[d.id] ? config.r(hash[d.id]) + 1 : 1;
+			return config.r((hash[d.id] || 0) + 1);
 		});
 	};
 
