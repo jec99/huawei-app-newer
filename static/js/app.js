@@ -363,6 +363,10 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				}
 			});
 
+			// the dry approach doesn't work here because it ends up creating config
+			// as a class variable rather than an instance variable; not enough time
+			// to fix it right now
+
 			chart.margin = function (_) {
 				if (!arguments.length) {
 					return margin;
