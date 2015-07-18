@@ -75,6 +75,8 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 					.range([scatter_width, 0]))
 				.r(function (x) { return Math.sqrt(x) + 1; })
 				.zoomRange([1, 8])
+				// semanticZoom changes the radius depending on the zoom level
+				.semanticZoom(Math.sqrt)
 				.dimension(start_station)
 				.group(start_stations)
 				.points(stations_list)
@@ -89,19 +91,24 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				scatterPlot.id = 0;
 			}
 
-			var x,
-					y,
-					r,
-					width,
-					height,
-					zoomRange,
-					dimension,
-					group,
-					// selected = [],
-					id = scatterPlot.id++,
-					circle,
-					points,
-					coordinates;
+			var config = {
+				x: null,
+				y: null,
+				r: null,
+				width: null,
+				height: null,
+				zoomRange: null,
+				semanticZoom: null,
+				dimension: null,
+				group: null,
+				points: null,
+				coordinates: null
+			};
+
+
+			// real locals, not configs
+			var id = scatterPlot.id++;
+			var circle = null;
 
 			function chart (div) {
 				div.each(function () {
@@ -110,21 +117,21 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 
 					if (g.empty()) {
 						g = div.append('svg')
-							.attr('width', width)
-							.attr('height', height)
+							.attr('width', config.width)
+							.attr('height', config.height)
 							.append('g')
 							.call(d3.behavior.zoom()
-								.x(x)
-								.y(y)
-								.scaleExtent(zoomRange)
+								.x(config.x)
+								.y(config.y)
+								.scaleExtent(config.zoomRange)
 								.on('zoom', zoom));
 						g.append('rect')
 							.attr('class', 'overlay')
-							.attr('width', width)
-							.attr('height', height);
+							.attr('width', config.width)
+							.attr('height', config.height);
 
 						circle = g.selectAll('circle')
-							.data(points)
+							.data(config.points)
 							.enter().append('circle');	
 					}
 
@@ -138,106 +145,40 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				}
 
 				function transform (d) {
-					var coords = coordinates(d);
-					var scaling = d3.event ? Math.sqrt(d3.event.scale) : zoomRange[0];
-					return 'translate(' + x(coords[0]) + ',' + y(coords[1]) + ')scale(' + scaling + ')';
+					var coords = config.coordinates(d);
+					var scaling = d3.event ? config.semanticZoom(d3.event.scale) : config.zoomRange[0];
+					return 'translate(' + config.x(coords[0]) + ',' + config.y(coords[1]) + ')scale(' + scaling + ')';
 				}
 			}
 
 			chart.rerender = function () {
 				// preprocessing; can't modify the group sadly
 				// but this is what, <363 items? in linear time?
-				// lol
-				var hash = group.all().reduce(function (o, g) {
+				// lol i
+				var hash = config.group.all().reduce(function (o, g) {
 					o[g.key] = g.value;
 					return o;
 				}, {});
 
-				// console.log(hash);
 				circle.attr('r', function (d) {
-					return hash[d.id] ? Math.sqrt(hash[d.id]) + 1 : 1;
+					return hash[d.id] ? config.r(hash[d.id]) + 1 : 1;
 				});
 			};
 
-			chart.x = function (_) {
-				if (!arguments.length) {
-					return x;
-				}
-				x = _;
-				return chart;
-			};
+			// dry as hell
+			var configSetter = function (attrName) {
+				return function (_) {
+					if (!arguments.length) {
+						return config[attrName];
+					}
+					config[attrName] = _;
+					return chart;
+				};
+			}
 
-			chart.y = function (_) {
-				if (!arguments.length) {
-					return y;
-				}
-				y = _;
-				return chart; 
-			};
-
-			chart.dimension = function (_) {
-				if (!arguments.length) {
-					return dimension;
-				}
-				dimension = _;
-				return chart;
-			};
-
-			chart.group = function (_) {
-				if (!arguments.length) {
-					return group;
-				}
-				group = _;
-				return chart;
-			};
-
-			chart.width = function (_) {
-				if (!arguments.length) {
-					return width;
-				}
-				width = _;
-				return chart;
-			};
-
-			chart.height = function (_) {
-				if (!arguments.length) {
-					return height;
-				}
-				height = _;
-				return chart;
-			};
-
-			chart.zoomRange = function (_) {
-				if (!arguments.length) {
-					return zoomRange;
-				}
-				zoomRange = _;
-				return chart;
-			};
-
-			chart.r = function (_) {
-				if (!arguments.length) {
-					return r;
-				}
-				r = _;
-				return chart;
-			};
-
-			chart.coordinates = function (_) {
-				if (!arguments.length) {
-					return coordinates;
-				}
-				coordinates = _;
-				return chart;
-			};
-
-			chart.points = function (_) {
-				if (!arguments.length) {
-					return points;
-				}
-				points = _;
-				return chart;
-			};
+			for (var conf in config) {
+				chart[conf] = configSetter(conf);
+			}
 
 			return chart;
 		}
