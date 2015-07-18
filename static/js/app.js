@@ -7,9 +7,9 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 
 
 // credit for a lot of the charting code goes to the good people
-// of Crossfitler, over at Square, with inspiration from the
+// of Crossfilter, over at Square, with inspiration from the
 // people at dc.js
-.controller('CrossfilterController', function ($rootScope, $scope, $q, $timeout, ridesFactory, stationsFactory) {
+.controller('CrossfilterController', function ($rootScope, $scope, $q, $timeout, ridesFactory, stationsFactory, photosFactory) {
 	var t_start = '2012-06-01 00:00:00';
 	var t_end = '2012-06-15 00:00:00';
 	var map_center = [-77.034136, 38.843928];
@@ -79,7 +79,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 			.data(scatter_charts)
 			.each(render);
 
-		// this is apparently how you chain; ugly but reduces nesting
+		// this is apparently how you chain promises; ugly but reduces nesting
 		return ridesFactory.get(t_start, t_end);
 	}).then(function (data) {
 		data.data.forEach(function (e) {
@@ -140,6 +140,15 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 			});
 
 		renderAll();
+
+		return photosFactory.get(t_start, t_end);
+	}).then(function (data) {
+		console.log('photos-length');
+		console.log(data.data.length);
+
+		var photos = crossfilter(data.data);
+		var date = photos.dimension(function (e) { return e.date; });
+		var dates = date.group(d3.time.day);
 	});
 
 });

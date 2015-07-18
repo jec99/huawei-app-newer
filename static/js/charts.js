@@ -1,5 +1,15 @@
 
 function scatterPlot () {
+	/*
+		this only works as a singleton class at the moment because
+			of the config object. not really a problem right now
+			since we don't need multiple scatterplots
+
+		TO DO
+		- modify so it takes in an existing SVG element so we can
+			overlay things and have them zoom/pan in synchrony
+	*/
+
 	if (!scatterPlot.id) {
 		scatterPlot.id = 0;
 	}
@@ -65,8 +75,8 @@ function scatterPlot () {
 	}
 
 	chart.rerender = function () {
-		// the graph will be initialized before the data gets in,
-		// so we need to check to see if config.group has been set yet
+		// in many cases the graph may be initialized before the data gets in,
+		// so we need to check if it's here before doing anything
 		var hash = {};
 		if (config.group) {
 			hash = config.group.all().reduce(function (o, g) {
@@ -100,6 +110,12 @@ function scatterPlot () {
 
 
 function barChart () {
+	/*
+		TO DO:
+		- separate initalization from data input so the page isn't just
+			empty while we're waiting for the data
+	*/
+
 	if (!barChart.id) {
 		barChart.id = 0;
 	}
