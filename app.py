@@ -1,21 +1,19 @@
 from flask import Flask, request, session, g, redirect, url_for, Response, \
 	abort, render_template, flash, jsonify, send_from_directory
 from flask.ext.compress import Compress
-from sqlalchemy import create_engine, func, and_, or_
+from sqlalchemy import create_engine, func
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-import geoalchemy2.functions as func_geo
 from geoalchemy2 import Geometry
-from geojson import Feature, FeatureCollection, dumps
+from geojson import Feature, FeatureCollection, dumps, loads
 from models import Weather, BlockGroup, BikeStation, BikeRide, \
 	SubwayStation, SubwayDelay, Location, Base
 from numpy import isclose
-from polyline.codec import PolylineCodec
-from urllib import urlopen, urlencode
 from datetime import datetime, timedelta
 from math import ceil
 import json
 import re
+from subprocess import Popen, PIPE
 
 DEBUG = True
 SECRET_KEY = 'develop'
@@ -424,6 +422,106 @@ def get_rides():
 		'subscribed': r[4]
 	} for r in rides]
 	return jsonify({'data': ret})
+
+
+def preprocess_census_data(data):
+	# TODO
+	# - name the fields something usable
+	fields = {
+		'Contract Rent': {
+			'name': 'Rent',
+			'process': lambda x: x
+		},
+		'Educational Attainment': {
+			'name': 'Education',
+			'process': lambda x: x
+		},
+		'Means of Transportation to Work': {
+			'name': 'Tranportation to Work',
+			'process': lambda x: x
+		},
+		'Tenure': {
+			'name': 'Housing Tenure',
+			'process': lambda x: x
+		},
+		'Unweighted Sample Count of the Population': {
+			'name': 'Population',
+			'process': lambda x: x
+		},
+		'Unweighted Sample Housing Units': {
+			'name': 'Housing Units',
+			'process': lambda x: x
+		},
+		'Value for Owner-Occupied Housing Units': {
+			'name': 'Housing Unit Value',
+			'process': lambda x: x
+		},
+		'Sex by Age': {
+			'name': 'Sex by Age',
+			'process': lambda x: x
+		},
+		'Household Income': {
+			'name': 'Household Income',
+			'process': lambda x: x
+		},
+		'Per Capita Income': {
+			'name': 'Per Capita Income',
+			'process': lambda x: x
+		}
+	}
+
+	ret = {}
+
+	for category in data:
+		if category in fields:
+			ret[category] = {}
+		else:
+			continue
+		for field in data[category]:
+			if 'Margin of Error' not in field:
+				ret[category][field] = data[category][field]
+
+	return ret
+
+def to_topojson(geoj):
+	# takes in a geojson string and outputs it in topojson
+	# for space saving reasons
+	process = Popen(['topojson', '-p'], stdout=PIPE, stdin=PIPE)
+	ret, _ = process.communicate(geoj)
+	return ret
+
+def block_group_geometry():
+	# BE CAREFUL RETURNS TOPOJSON NOT GEOJSON
+	# for speed and space reasons
+	# it's 5x faster/smaller than geojson
+	query = 'select id, ST_AsGeoJSON(tiger) from block_groups;'
+	block_groups = db_session.execute(query).fetchall()
+	features = []
+	for bg in block_groups:
+		geoj = Feature(geometry=loads(bg[1]), properties={'id': bg[0]})
+		features.append(geoj)
+	fc = FeatureCollection(features)
+	topo = loads(to_topojson(dumps(fc)))
+	# topo['transform']['scale'] = [1, 1]
+	return topo
+
+def block_group_census():
+	query = 'select id, ST_AsGeoJSON(tiger) from block_groups;'
+	block_groups = db_session.execute(query).fetchall()
+	ret = {}
+	for bg in block_groups:
+		ret[bg[0]] = preprocess(json.loads(bg[1]))
+	return ret
+
+@app.route('/block_groups')
+def get_block_groups_handler():
+	req_type = request.args.get('type') or 'all'
+	ret = {}
+	if req_type in ['geometry', 'all']:
+		ret['geometry'] = block_group_geometry()
+	if req_type in ['census', 'all']:
+		ret['census'] = block_group_census()
+	return jsonify(ret)
 
 
 if __name__ == '__main__':

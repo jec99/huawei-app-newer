@@ -131,3 +131,11 @@ md-content h1:first-child {
 	margin: 0px 10px;
 	border: 1px solid #444;
 }
+
+/* BLOCK GROUPS */
+
+.feature {
+	fill: none;
+	stroke: #666;
+	stroke-width: 1.5px;
+}

@@ -30,8 +30,8 @@ angular.module('mapApp.factories', [])
 		get: function (x, y) {
 			// takes in station id x, station id y
 			var deferred = $q.defer();
-			$http.get('/rides/' + x + '/' + y
-			).success(function (data, status, headers, response) {
+			$http.get('/rides/' + x + '/' + y)
+			.success(function (data, status, headers, response) {
 				deferred.resolve(data);
 			}).error(function (data, status, headers, response) {
 				deferred.reject(status);
@@ -56,8 +56,8 @@ angular.module('mapApp.factories', [])
 				}, 20);
 			} else {
 				dataUrl = '/rides_summary' + (x && y ? '/' + x + '/' + y : '');
-				$http.get(dataUrl
-				).success(function (data, status, headers, response) {
+				$http.get(dataUrl)
+				.success(function (data, status, headers, response) {
 					oldX = x;
 					olyY = y;
 					rideData = data;
@@ -77,8 +77,8 @@ angular.module('mapApp.factories', [])
 		get: function (x, y) {
 			// takes in station id x, station id y
 			var deferred = $q.defer();
-			$http.get('/bike_station_route/' + x + '/' + y
-			).success(function (data, status, headers, response) {
+			$http.get('/bike_station_route/' + x + '/' + y)
+			.success(function (data, status, headers, response) {
 				deferred.resolve(data);
 			}).error(function (data, status, headers, response) {
 				deferred.reject(status);
@@ -197,11 +197,31 @@ angular.module('mapApp.factories', [])
 .factory('stationsFactory', function ($q, $http) {
 	return {
 		get: function () {
-			// YYYY-mm-dd HH:MM:SS
 			var deferred = $q.defer();
 			$http({
 				method: 'GET',
 				url: '/stations',
+			}).success(function (data, status, headers, response) {
+				deferred.resolve(data);
+			}).error(function (data, status, headers, response) {
+				deferred.reject(status);
+			});
+
+			return deferred.promise;
+		}
+	}
+})
+
+.factory('blockGroupsFactory', function ($q, $http) {
+	return {
+		get: function (field) {
+			var deferred = $q.defer();
+			$http({
+				method: 'GET',
+				url: '/block_groups',
+				params: {
+					type: field
+				}
 			}).success(function (data, status, headers, response) {
 				deferred.resolve(data);
 			}).error(function (data, status, headers, response) {
