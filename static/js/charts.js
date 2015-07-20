@@ -14,13 +14,14 @@ function scatterPlot () {
 		scatterPlot.id = 0;
 	}
 
+	// all of these will have getters/setters
 	var config = {
 		x: null,
 		y: null,
 		r: null,
 		width: null,
 		height: null,
-		zoomRange: null,
+		zoom: null,
 		semanticZoom: null,
 		dimension: null,
 		group: null,
@@ -33,21 +34,16 @@ function scatterPlot () {
 	var id = scatterPlot.id++;
 	var circle = null;
 
-	function chart (div) {
-		div.each(function () {
-			var div = d3.select(this),
-					g = div.select('g')
+	function chart (elt) {
+		elt.each(function () {
+			var g = elt.select('g[class=""]');
 
+			// initialization
 			if (g.empty()) {
-				g = div.append('svg')
-					.attr('width', config.width)
-					.attr('height', config.height)
-					.append('g')
-					.call(d3.behavior.zoom()
-						.x(config.x)
-						.y(config.y)
-						.scaleExtent(config.zoomRange)
-						.on('zoom', zoom));
+				config.zoom.on('zoom.scatter', handleZoom);
+
+				g = elt.append('g')
+					.attr('class', 'scatter-' + id);
 				g.append('rect')
 					.attr('class', 'overlay')
 					.attr('width', config.width)
@@ -63,13 +59,13 @@ function scatterPlot () {
 				.attr('transform', transform);
 		});
 
-		function zoom () {
+		function handleZoom () {
 			circle.attr('transform', transform);
 		}
 
 		function transform (d) {
 			var coords = config.coordinates(d);
-			var scaling = d3.event ? config.semanticZoom(d3.event.scale) : config.zoomRange[0];
+			var scaling = d3.event ? config.semanticZoom(d3.event.scale) : config.zoom.scaleExtent()[0];
 			return 'translate(' + config.x(coords[0]) + ',' + config.y(coords[1]) + ')scale(' + scaling + ')';
 		}
 	}
