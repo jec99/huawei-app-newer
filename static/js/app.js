@@ -38,9 +38,11 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				.range([0, map_width]),
 			yScatterMap = d3.scale.linear()
 				.domain([bounds[0][1], bounds[1][1]])
-				.range([map_width, 0]);
+				.range([map_width, 0])
+			xScatterMapOriginal = xScatterMap.copy(),
+			yScatterMapOriginal = yScatterMap.copy();
 
-	var zoomRange = [1, 8];
+	var zoomRange = [1, 12];
 	var zoom = d3.behavior.zoom()
 		.x(xScatter)
 		.y(yScatter)
@@ -75,6 +77,11 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 	}
 
 	stationsFactory.get().then(function (data) {
+		/*
+			TO DO:
+			- make station radius relative to the maximum, like station color
+			- make color represent proportion of users that are subscribed
+		*/
 		var stations = {},
 				stations_list = [];
 		for (var i = 0; i < data.data.length; i++) {
@@ -98,7 +105,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				.y(yScatter)
 				.r(function (r) { return Math.max(Math.pow(r, 1/2), 3) / 2; })
 				.opacity(function (r) { return 0.8; })
-				.color(function (x) { return colors(Math.pow(x, 1/2)); })
+				.color(function (r) { return colors(Math.pow(r, 1/2)); })
 				.zoom(zoom)
 				// semanticZoom changes the radius depending on the zoom level
 				.semanticZoom(function () { return 1; })
@@ -313,10 +320,14 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 			.data(topojson.feature(data.geometry, data.geometry.objects.stdin).features)
 			.enter().append('path')
 			.attr('d', path)
-			.attr('class', 'feature');
+			.attr('class', 'feature')
+			.on('click', function (d) {
+				var elt = d3.select(this);
+				this.selected = !this.selected;
+				elt.classed('selected', this.selected);
+			});
 
 		// creating the minimap
-		// minimap = d3.select(map_elt).append('rect')
 
 		// the common coordinate system the two maps share is lng-lat,
 		// so we need to convert between these using scale.inverse(y)
@@ -331,12 +342,15 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 					x1_lnglat = xScatter.invert(scatter_width),
 					y1_lnglat = yScatter.invert(0);
 
-			var x0 = xScatterMap(x0_lnglat),
-					y0 = yScatterMap(y1_lnglat),
-					x1 = xScatterMap(x1_lnglat),
-					y1 = yScatterMap(y0_lnglat);
+			// old minimap bug: takes into account translations/zooms in the
+			// map pane. it shouldn't; we need to keep copies of the original
+			// map x/y ranges and use those
+			var x0 = xScatterMapOriginal(x0_lnglat),
+					y0 = yScatterMapOriginal(y1_lnglat),
+					x1 = xScatterMapOriginal(x1_lnglat),
+					y1 = yScatterMapOriginal(y0_lnglat);
 
-			return [[x0, y0], [x1, y1]]
+			return [[x0, y0], [x1, y1]];
 		}
 
 		var coords = minimapCoords();

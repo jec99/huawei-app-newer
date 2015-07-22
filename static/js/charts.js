@@ -2,12 +2,7 @@
 function scatterPlot () {
 	/*
 		this only works as a singleton class at the moment because
-			of the config object. not really a problem right now
-			since we don't need multiple scatterplots
-
-		TO DO
-		- modify so it takes in an existing SVG element so we can
-			overlay things and have them zoom/pan in synchrony
+			of the config object, so that needs fixing
 	*/
 
 	if (!scatterPlot.id) {
@@ -86,6 +81,9 @@ function scatterPlot () {
 				return o;
 			}, {});
 		}
+
+		// NOTE: max is the CURRENT maximum, with all filters applied,
+		// not a global maximum over all the data. may be confusing
 
 		// TO DO: figure out a way to have these depend on parameters
 		// from the group - in general the group values will be
