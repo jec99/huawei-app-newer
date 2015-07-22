@@ -11,6 +11,7 @@
 	<script type="text/javascript" src='static/js/d3.js'></script>
 	<script type="text/javascript" src='static/js/topojson.js'></script>
 	<script type="text/javascript" src='static/js/d3-hexbin.js'></script>
+	<script type="text/javascript" src='static/js/cubehelix.js'></script>
 	<script type="text/javascript" src='static/js/simple-statistics.js'></script>
 	<!-- <script type="text/javascript" src='static/js/dc.js'></script> -->
 
@@ -49,20 +50,46 @@
 							<div id='crossfilter-custom-container' ng-controller='CrossfilterController'>
 								<div id="charts">
 									<div id='scatterplot' class='crossfilter-scatter'>
-										<svg></svg>
+										<svg />
+										<div id='hour-chart' class='crossfilter-chart'>
+											<div class='title'>Hour</div>
+										</div>
+										<div id='date-chart' class='crossfilter-chart'>
+											<div class='title'>Date</div>
+										</div>
+										<div id='duration-chart' class='crossfilter-chart'>
+											<div class='title'>Duration</div>
+										</div>
+										<div id='subscribed-chart' class='crossfilter-chart'>
+											<div class='title'>Subscribed</div>
+										</div>
 									</div>
-									<div id='hour-chart' class='crossfilter-chart'>
-										<div class='title'>Hour</div>
-									</div>
-									<div id='date-chart' class='crossfilter-chart'>
-										<div class='title'>Date</div>
-									</div>
-									<div id='duration-chart' class='crossfilter-chart'>
-										<div class='title'>Duration</div>
+									<div id='map-plot' class='map-scatter'>
+										<svg />
+										<div id='population-chart' class='crossfilter-chart'>
+											<div class='title'>Population</div>
+										</div>
+										<div id='age-chart' class='crossfilter-chart'>
+											<div class='title'>Age</div>
+										</div>
+										<div id='income-chart' class='crossfilter-chart'>
+											<div class='title'>Income</div>
+										</div>
+										<div id='rent-chart' class='crossfilter-chart'>
+											<div class='title'>Rent</div>
+										</div>
+										<div id='home-value-chart' class='crossfilter-chart'>
+											<div class='title'>Home Value</div>
+										</div>
+										<div id='education-chart' class='crossfilter-chart'>
+											<div class='title'>Education</div>
+										</div>
+										<div id='transportation-chart' class='crossfilter-chart'>
+											<div class='title'>Means of Transportation</div>
+										</div>
 									</div>
 									<!-- later -->
-									<!-- <div id='subscribed-chart' class='crossfilter-chart'></div> -->
-									<!-- <div id='start-station-chart' class='crossfilter-chart'></div> -->
+									<!-- weather stuff too -->
 								</div>
 							</div>
 						</md-tab-body>

@@ -1,4 +1,11 @@
 
+/*
+	TO DO
+	- this is very not dry. make factory factories that take in
+		a url and parameter names, as well as a caching option
+
+*/
+
 angular.module('mapApp.factories', [])
 
 .factory('stationData', function ($q, $http) {
@@ -223,6 +230,38 @@ angular.module('mapApp.factories', [])
 					type: field
 				}
 			}).success(function (data, status, headers, response) {
+				deferred.resolve(data);
+			}).error(function (data, status, headers, response) {
+				deferred.reject(status);
+			});
+
+			return deferred.promise;
+		}
+	}
+})
+
+.factory('subwayStationsFactory', function ($q, $http) {
+	return {
+		get: function () {
+			var deferred = $q.defer();
+			$http.get('/subway_stations'
+			).success(function (data, status, headers, response) {
+				deferred.resolve(data);
+			}).error(function (data, status, headers, response) {
+				deferred.reject(status);
+			});
+
+			return deferred.promise;
+		}
+	}
+})
+
+.factory('pointsOfInterestFactory', function ($q, $http) {
+	return {
+		get: function () {
+			var deferred = $q.defer();
+			$http.get('/points_of_interest'
+			).success(function (data, status, headers, response) {
 				deferred.resolve(data);
 			}).error(function (data, status, headers, response) {
 				deferred.reject(status);

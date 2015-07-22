@@ -342,7 +342,7 @@ def events_geojson():
 	for i in range(num_intervals):
 		ret[i] = FeatureCollection(ret[i])
 
-	return jsonify({ 'data': ret })
+	return jsonify({'data': ret})
 
 
 @app.route('/checkins')
@@ -490,11 +490,20 @@ def to_topojson(geoj):
 	ret, _ = process.communicate(geoj)
 	return ret
 
-def block_group_geometry():
-	# BE CAREFUL RETURNS TOPOJSON NOT GEOJSON
-	# for speed and space reasons
-	# it's 5x faster/smaller than geojson
-	query = 'select id, ST_AsGeoJSON(tiger) from block_groups;'
+def block_group_geometry(resolution='basic', threshold=0.01):
+	# gets only geometry for those block groups that are
+	# close to a bike station (within 100 meters)
+	# resolution is basic or tiger
+	stations_query = 'select st_asgeojson(st_collect(bike_stations.geom)) from bike_stations;'
+	stations = db_session.execute(stations_query).fetchall()[0][0]
+	query = """
+		with const as (
+			select st_setsrid(st_geomfromgeojson('{0}'), 4326) as c
+		)
+		select block_groups.id, st_asgeojson(block_groups.{1})
+		from const cross join block_groups
+		where st_distance(block_groups.{1}, const.c) < {2};
+	""".format(stations, resolution, threshold)
 	block_groups = db_session.execute(query).fetchall()
 	features = []
 	for bg in block_groups:
@@ -502,26 +511,63 @@ def block_group_geometry():
 		features.append(geoj)
 	fc = FeatureCollection(features)
 	topo = loads(to_topojson(dumps(fc)))
-	# topo['transform']['scale'] = [1, 1]
 	return topo
 
-def block_group_census():
-	query = 'select id, ST_AsGeoJSON(tiger) from block_groups;'
+def block_group_census(ids=None):
+	if ids is None:
+		query = 'select id, ST_AsGeoJSON(tiger) from block_groups;'
+	else:
+		query = """
+			select id, ST_AsGeoJSON(tiger) from block_groups
+			where id in {0};
+		""".format(str(tuple(ids)))
 	block_groups = db_session.execute(query).fetchall()
 	ret = {}
 	for bg in block_groups:
-		ret[bg[0]] = preprocess(json.loads(bg[1]))
+		ret[bg[0]] = preprocess_census_data(json.loads(bg[1]))
 	return ret
 
 @app.route('/block_groups')
 def get_block_groups_handler():
 	req_type = request.args.get('type') or 'all'
 	ret = {}
+	ids = None
 	if req_type in ['geometry', 'all']:
 		ret['geometry'] = block_group_geometry()
+		ids = map(lambda x: x['properties']['id'], ret['geometry']['objects']['stdin']['geometries'])
 	if req_type in ['census', 'all']:
-		ret['census'] = block_group_census()
+		# TO DO: fix so it uses the IDs from block_group_geometry_local
+		ret['census'] = block_group_census(ids)
 	return jsonify(ret)
+
+
+@app.route('/subway_stations')
+def get_subway_stations():
+	query = """
+		select id, ST_X(geom), ST_Y(geom) from subway_stations
+	"""
+	stations = db_session.execute(query).fetchall()
+	ret = [{
+		'id': s[0],
+		'lng': s[1],
+		'lat': s[2]
+	} for s in stations]
+	return jsonify({'data': ret})
+
+
+@app.route('/points_of_interest')
+def get_points_of_interest():
+	query = """
+		select id, rank, ST_X(geom), ST_Y(geom) from locations
+	"""
+	locations = db_session.execute(query).fetchall()
+	ret = [{
+		'id': s[0],
+		'rank': s[1],
+		'lng': s[2],
+		'lat': s[3]
+	} for s in locations]
+	return jsonify({'data': ret})
 
 
 if __name__ == '__main__':

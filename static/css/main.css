@@ -53,7 +53,7 @@ body {
 /* TABS */
 
 #primary-container {
-	width: 1000px;
+	width: 1300px;
 }
 
 md-content {
@@ -118,24 +118,56 @@ md-content h1:first-child {
 	width: 420px;
 }
 
+#subscribed-chart {
+	width: 260px;
+}
+
+#subscribed-chart .axis path, #subscribed-chart .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
 
 /* GRAPH */
 
+#scatterplot {
+	float: left;
+	width: 600px;
+	height: 600px;
+	margin: 0px 10px;
+	border: 1px solid #444;
+}
 
 #scatterplot .overlay {
 	fill: none;
 	pointer-events: all;
 }
 
-#scatterplot {
+
+/* BLOCK GROUPS */
+
+#map-plot {
+	float: left;
+	width: 600px;
+	height: 600px;
 	margin: 0px 10px;
 	border: 1px solid #444;
 }
 
-/* BLOCK GROUPS */
+#map-plot .overlay {
+	fill: white;
+	pointer-events: all;
+}
 
 .feature {
-	fill: none;
-	stroke: #666;
-	stroke-width: 1.5px;
+	fill: #ccc;
+	stroke: white;
+	/*stroke-width: 1.5px;*/
+}
+
+.minimap {
+	stroke: #777;
+	fill: #aaa;
+	opacity: 0.4;
 }
