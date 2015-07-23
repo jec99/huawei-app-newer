@@ -12,6 +12,10 @@ body {
 	display: none;
 }
 
+md-tab-content {
+	height: 1200px;
+}
+
 /* MARKERS */
 
 .station-marker {
@@ -166,13 +170,13 @@ md-content h1:first-child {
 	/*stroke-width: 1.5px;*/
 }
 
-.feature:hover {
+/*.feature:hover {
 	fill: orange;
 }
 
 .feature.selected {
 	fill: #333;
-}
+}*/
 
 .minimap {
 	stroke: #777;

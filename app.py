@@ -425,61 +425,20 @@ def get_rides():
 
 
 def preprocess_census_data(data):
-	# TODO
-	# - name the fields something usable
-	fields = {
-		'Contract Rent': {
-			'name': 'Rent',
-			'process': lambda x: x
-		},
-		'Educational Attainment': {
-			'name': 'Education',
-			'process': lambda x: x
-		},
-		'Means of Transportation to Work': {
-			'name': 'Tranportation to Work',
-			'process': lambda x: x
-		},
-		'Tenure': {
-			'name': 'Housing Tenure',
-			'process': lambda x: x
-		},
-		'Unweighted Sample Count of the Population': {
-			'name': 'Population',
-			'process': lambda x: x
-		},
-		'Unweighted Sample Housing Units': {
-			'name': 'Housing Units',
-			'process': lambda x: x
-		},
-		'Value for Owner-Occupied Housing Units': {
-			'name': 'Housing Unit Value',
-			'process': lambda x: x
-		},
-		'Sex by Age': {
-			'name': 'Sex by Age',
-			'process': lambda x: x
-		},
-		'Household Income': {
-			'name': 'Household Income',
-			'process': lambda x: x
-		},
-		'Per Capita Income': {
-			'name': 'Per Capita Income',
-			'process': lambda x: x
-		}
-	}
+	# CURRENTLY UNUSED
+	# AND SOMEWHAT UNUSEFUL, MISLEADING
+	
+	with open('census_data_conversion.json', 'r') as f:
+		form = json.load(f)
 
 	ret = {}
-
-	for category in data:
-		if category in fields:
-			ret[category] = {}
-		else:
-			continue
-		for field in data[category]:
-			if 'Margin of Error' not in field:
-				ret[category][field] = data[category][field]
+	for c in form:
+		# see the conversion document, the first item is the new name
+		ret[form[c][0]] = []
+		for f in form[c][1:]:
+			old_name, new_name = f.keys()[0], f.values()[0]
+			val = data[c][old_name] if old_name in data[c] else 0
+			ret[form[c][0]].append({new_name: val})
 
 	return ret
 
@@ -515,10 +474,10 @@ def block_group_geometry(resolution='basic', threshold=0.01):
 
 def block_group_census(ids=None):
 	if ids is None:
-		query = 'select id, ST_AsGeoJSON(tiger) from block_groups;'
+		query = 'select id, census_data from block_groups;'
 	else:
 		query = """
-			select id, ST_AsGeoJSON(tiger) from block_groups
+			select id, census_data from block_groups
 			where id in {0};
 		""".format(str(tuple(ids)))
 	block_groups = db_session.execute(query).fetchall()

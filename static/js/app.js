@@ -320,12 +320,12 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 			.data(topojson.feature(data.geometry, data.geometry.objects.stdin).features)
 			.enter().append('path')
 			.attr('d', path)
-			.attr('class', 'feature')
-			.on('click', function (d) {
-				var elt = d3.select(this);
-				this.selected = !this.selected;
-				elt.classed('selected', this.selected);
-			});
+			.attr('class', 'feature');
+			// .on('click', function (d) {
+			// 	var elt = d3.select(this);
+			// 	this.selected = !this.selected;
+			// 	elt.classed('selected', this.selected);
+			// });
 
 		// creating the minimap
 
