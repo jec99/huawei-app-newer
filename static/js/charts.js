@@ -14,6 +14,7 @@ function scatterPlot () {
 		x: null,
 		y: null,
 		r: null,
+		relativeComparator: function (x) { return x; },
 		color: function () { return 'black'; },
 		opacity: function () { return 1; },
 		width: null,
@@ -73,11 +74,13 @@ function scatterPlot () {
 		// in many cases the graph may be initialized before the data gets in,
 		// so we need to check if it's here before doing anything
 		var hash = {};
-		var max = 0;
+		var max = -Infinity;
+		var min = Infinity;
 		if (config.group) {
 			hash = config.group.all().reduce(function (o, g) {
 				o[g.key] = g.value;
-				max = Math.max(max, g.value);
+				max = Math.max(max, config.relativeComparator(g.value));
+				min = Math.min(min, config.relativeComparator(g.value));
 				return o;
 			}, {});
 		}
@@ -90,13 +93,13 @@ function scatterPlot () {
 		// list of multiple values, used for color/opacity/etc
 		circle
 			.attr('r', function (d) {
-				return config.r(hash[d.id] || 0);
+				return config.r(hash[d.id], max, min)
 			})
 			.attr('fill', function (d) {
-				return config.color(hash[d.id] / max || 0);
+				return config.color(hash[d.id], max, min);
 			})
 			.attr('opacity', function (d) {
-				return config.opacity(hash[d.id] / max || 0);
+				return config.opacity(hash[d.id], max, min);
 			});
 	};
 
@@ -140,7 +143,8 @@ function barChart () {
 			dimension,
 			group,
 			round,
-			barWidth = 9;
+			barWidth = 9,
+			brushToValues = function (x) { return x; };
 
 	function chart (div) {
 		var width = x.range()[1],
@@ -242,7 +246,7 @@ function barChart () {
 			.attr('width', x(extent[1]) - x(extent[0]));
 
 		// the real meat
-		dimension.filterRange(extent);
+		dimension.filterRange(extent.map(brushToValues));
 	});
 
 	brush.on('brushend.chart', function () {
@@ -329,6 +333,14 @@ function barChart () {
 			return barWidth;
 		}
 		barWidth = _;
+		return chart;
+	};
+
+	chart.brushToValues = function (_) {
+		if (!arguments.length) {
+			return brushToValues;
+		}
+		brushToValues = _;
 		return chart;
 	};
 

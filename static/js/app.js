@@ -1,5 +1,5 @@
 
-angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dcControllers', 'ngMaterial'])
+angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMaterial'])
 
 .controller('MainController', function ($scope, $rootScope, $q, bikeRides, stationData, bikeDirections) {
 	return 0;
@@ -9,7 +9,9 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 // credit for a lot of the charting code goes to the good people
 // of Crossfilter, over at Square, with inspiration from the
 // people at dc.js
-.controller('CrossfilterController', function ($rootScope, $scope, $q, $timeout, ridesFactory, stationsFactory, photosFactory, blockGroupsFactory, subwayStationsFactory, pointsOfInterestFactory) {
+.controller('CrossfilterController', function ($rootScope, $scope, $q,
+		$timeout, ridesFactory, stationsFactory, photosFactory, blockGroupsFactory,
+		subwayStationsFactory, pointsOfInterestFactory, weatherFactory) {
 	var t_start = '2012-06-01 00:00:00';
 	var t_end = '2012-06-15 00:00:00';
 	// var map_center = [-77.034136, 38.843928];
@@ -56,8 +58,10 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 			scatter_chart,
 			hexbin_charts,
 			hexbin_chart,
-			charts,
-			chart,
+			ride_charts,
+			ride_chart,
+			weather_charts,
+			weather_chart,
 			minimap;
 
 	var scatter_elt = '#scatterplot > svg';
@@ -72,7 +76,8 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 	}
 
 	function renderAll () {
-		chart.each(render);
+		ride_chart.each(render);
+		weather_chart.each(render);
 		scatter_chart.each(function (sc) { render(sc.rerender); });
 	}
 
@@ -97,15 +102,34 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 			.domain([0, 0.5, 1])
 			.range([d3.hsl(240, .6, .3), d3.hsl(60, .6, 1), d3.hsl(-40, .6, .3)]);
 
+		var color_mod = function (x) {
+			return Math.pow((x + 1) / 2, 2);
+		};
+
 		scatter_charts = [
 			scatterPlot()
 				.width(scatter_width)
 				.height(scatter_height)
 				.x(xScatter)
 				.y(yScatter)
-				.r(function (r) { return Math.max(Math.pow(r, 1/2), 3) / 2; })
-				.opacity(function (r) { return 0.8; })
-				.color(function (r) { return colors(Math.pow(r, 1/2)); })
+				// sometimes you want attributes, like r, color, opacity, etc., to
+				// be based on absolute values, sometimes on relative values. this
+				// defines a scalar relative value metric, and its maximum and
+				// minimum are passed into r, opacity, and color.
+				.relativeComparator(function (v) {
+					return v.subscribed - v.casual;
+				})
+				.r(function (v) {
+					if (v === undefined) return 1;
+					return Math.max(Math.pow(v.casual + v.subscribed, 1/2), 3) / 2;
+				})
+				.opacity(function () {
+					return 0.8;
+				})
+				.color(function (v) {
+					if (v === undefined) return colors(0.5);
+					return colors(color_mod((v.subscribed - v.casual) / (v.subscribed + v.casual)));
+				})
 				.zoom(zoom)
 				// semanticZoom changes the radius depending on the zoom level
 				.semanticZoom(function () { return 1; })
@@ -119,13 +143,25 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 			.data(scatter_charts)
 			.each(render);
 
-		return ridesFactory.get(t_start, t_end);
+		return $q.all([
+			ridesFactory.get(t_start, t_end),
+			weatherFactory.get(t_start, t_end)
+		]);
 	}).then(function (data) {
-		data.data.forEach(function (e) {
+		var rds = data[0].data,
+				wthr = data[1].data;
+
+		wthr.forEach(function (e) {
 			e.date = new Date(e.date);
 		});
 
-		var rides = crossfilter(data.data);
+		var flag = 1;
+		rds.forEach(function (e) {
+			e.date = new Date(e.date);
+			e.weather = getWeather(e.date);
+		});
+
+		var rides = crossfilter(rds);
 
 		var date = rides.dimension(function (e) { return e.date; }),
 				hour = rides.dimension(function (e) { return e.date.getHours() + e.date.getMinutes() / 60; }),
@@ -139,18 +175,59 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				subscriptions = subscribed.group(),
 				start_stations = start_station.group();
 
+		start_stations.reduce(
+			function (p, v) {
+				p.subscribed += Number(v.subscribed);
+				p.casual += Number(!v.subscribed);
+				return p;
+			}, function (p, v) {
+				p.subscribed -= Number(v.subscribed);
+				p.casual -= Number(!v.subscribed);
+				return p;
+			}, function () {
+				return {
+					subscribed: 0,
+					casual: 0
+				}
+			}
+		);
+
+		function getWeather (dt) {
+			// we're assuming we have data for every hour
+			var hour = Math.floor((dt - new Date(t_start)) / 1000 / 60 / 60);
+			if (Math.abs(wthr[hour].date - dt) < 60 * 60 * 1000) {
+				return wthr[hour];
+			} else if (wthr[hour].date - dt > 0) {
+				// walk down the list until you're within an hour
+				var i = 1;
+				while (hour - i > 0 && Math.abs(wthr[hour - i].date - dt) > 60 * 1000) i += 1;
+				return wthr[hour - i];
+			} else {
+				// walk up the list
+				var i = 1;
+				while (hour + i < wthr.length - 1 && Math.abs(wthr[hour + i].date - dt) > 60 * 1000) i += 1;
+				return wthr[hour + i];
+			}
+		}
+
+		var temperature = rides.dimension(function (e) { return e.weather.temperature; }),
+				precipitation = rides.dimension(function (e) { return e.weather.precipitation; }),
+				humidity = rides.dimension(function (e) { return e.weather.humidity; }),
+				snow = rides.dimension(function (e) { return e.weather.snow; });
+
+		var temperatures = temperature.group(function (t) { return Math.floor(t / 5); }),
+				precipitations = precipitation.group(function (p) { return Math.floor(p / 5); }),
+				humidities = humidity.group(function (p) { return Math.floor(p / 5); }),
+				snows = snow.group();
+
 		scatter_charts[0]
 			.dimension(start_station)
-			// use group.reduce instead of group.all if
-			// you want something like a ratio of casual
-			// to subscribed users
 			.group(start_stations);
 
-		charts = [
+		ride_charts = [
 			barChart()
 				.dimension(hour)
 				.group(hours)
-				// .round(Math.floor)
 				.x(d3.scale.linear()
 					.domain([0, 24])
 					.rangeRound([0, 10 * 24]))
@@ -165,7 +242,6 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 					.rangeRound([0, 10 * 42]))
 				.tickFormat(function (e) { return daysOfWeek[e.getDay()]; }),
 
-			// something's messed up here
 			barChart()
 				.dimension(duration)
 				.group(durations)
@@ -173,7 +249,8 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 				.x(d3.scale.linear()
 					.domain([0, 40])
 					.rangeRound([0, 10 * 40]))
-				.tickFormat(function (e) { return e * 5; }),
+				.tickFormat(function (e) { return e * 5; })
+				.brushToValues(function (e) { return e * 5; }),
 
 			categoricalChart()
 				.dimension(subscribed)
@@ -183,12 +260,62 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 					.rangePoints([0, 10 * 10], 1))
 				.tickFormat(function (e) { return e; })
 		];
+
+		// THESE ARE BUGGY
+		// FIX THEM LATER
+		// what's going on is, the scalar charts are not brushing
+		// the actual extent (/5), but the extent labeled
+		// same with teh subscribed chart actually, i have no idea
+		// how i didn't catch this. i guess we have to pass in
+		// another function...
+		weather_charts = [
+			barChart()
+				.dimension(temperature)
+				.group(temperatures)
+				.x(d3.scale.linear()
+					.domain([0, 20])
+					.rangeRound([0, 10 * 20]))
+				.tickFormat(function (e) { return e * 5; })
+				.brushToValues(function (e) { return e * 5; }),
+
+			barChart()
+				.dimension(precipitation)
+				.group(precipitations)
+				.x(d3.scale.linear()
+					.domain([0, 20])
+					.rangeRound([0, 10 * 20]))
+				.tickFormat(function (e) { return e * 5; })
+				.brushToValues(function (e) { return e * 5; }),
+
+			barChart()
+				.dimension(humidity)
+				.group(humidities)
+				.x(d3.scale.linear()
+					.domain([0, 20])
+					.rangeRound([0, 10 * 20]))
+				.tickFormat(function (e) { return e * 5; })
+				.brushToValues(function (e) { return e * 5; }),
+
+			categoricalChart()
+				.dimension(snows)
+				.group(snows)
+				.x(d3.scale.ordinal()
+					.domain([true, false])
+					.rangePoints([0, 10 * 10], 1))
+				.tickFormat(function (e) { return e; })
+		];
 		
-		chart = d3.selectAll('#scatterplot .crossfilter-chart')
-			.data(charts)
+		ride_chart = d3.selectAll('#bike-ride-charts .crossfilter-chart')
+			.data(ride_charts)
 			.each(function (chart) {
 				chart.on('brush', renderAll).on('brushend', renderAll);
 			});
+
+		weather_chart = d3.selectAll('#weather-charts .crossfilter-chart')
+			.data(weather_charts)
+			.each(function (chart) {
+				chart.on('brush', renderAll).on('brushend', renderAll);
+			})
 
 		renderAll();
 
@@ -421,7 +548,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'mapApp.dc
 			locations.attr('transform', transform);
 		});
 
-		var semanticZoom = Math.sqrt;
+		var semanticZoom = function (x) { return Math.pow(x, 1/3); };
 
 		function transform (d) {
 			var coords = [d.lng, d.lat];

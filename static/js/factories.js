@@ -270,4 +270,27 @@ angular.module('mapApp.factories', [])
 			return deferred.promise;
 		}
 	}
+})
+
+.factory('weatherFactory', function ($q, $http) {
+	return {
+		get: function (start, end) {
+			// YYYY-mm-dd HH:MM:SS
+			var deferred = $q.defer();
+			$http({
+				method: 'GET',
+				url: '/weather',
+				params: {
+					t_start: start,
+					t_end: end
+				}
+			}).success(function (data, status, headers, response) {
+				deferred.resolve(data);
+			}).error(function (data, status, headers, response) {
+				deferred.reject(status);
+			});
+
+			return deferred.promise;
+		}
+	}
 });

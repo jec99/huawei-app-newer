@@ -529,6 +529,29 @@ def get_points_of_interest():
 	return jsonify({'data': ret})
 
 
+@app.route('/weather')
+def get_weather():
+	t_start = request.args.get('t_start')
+	t_end = request.args.get('t_end')
+
+	weather_query = """
+		select datetime, temperature, precipitation, humidity, snow
+		from weather
+		where datetime >= '{0}' and datetime < '{1}'
+		order by datetime asc
+	""".format(t_start, t_end)
+	weather = db_session.execute(weather_query).fetchall()
+
+	ret = [{
+		'date': datetime.strftime(w[0], '%Y-%m-%d %H:%M:%S'),
+		'temperature': w[1],
+		'precipitation': w[2],
+		'humidity': w[3],
+		'snow': w[4]
+	} for w in weather]
+	return jsonify({'data': ret})
+
+
 if __name__ == '__main__':
 	app.run()
 

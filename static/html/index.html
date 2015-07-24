@@ -27,7 +27,6 @@
 
 	<script type="text/javascript" src='static/js/factories.js'></script>
 	<script type="text/javascript" src='static/js/map-controller.js'></script>
-	<script type="text/javascript" src='static/js/dc-controllers.js'></script>
 	<script type="text/javascript" src='static/js/charts.js'></script>
 	<script type="text/javascript" src='static/js/app.js'></script>
 
@@ -51,17 +50,33 @@
 								<div id="charts">
 									<div id='scatterplot' class='crossfilter-scatter'>
 										<svg />
-										<div id='hour-chart' class='crossfilter-chart'>
-											<div class='title'>Hour</div>
+										<div id='bike-ride-charts'>
+											<div id='hour-chart' class='crossfilter-chart'>
+												<div class='title'>Hour</div>
+											</div>
+											<div id='date-chart' class='crossfilter-chart'>
+												<div class='title'>Date</div>
+											</div>
+											<div id='duration-chart' class='crossfilter-chart'>
+												<div class='title'>Duration</div>
+											</div>
+											<div id='subscribed-chart' class='crossfilter-chart'>
+												<div class='title'>Subscribed</div>
+											</div>
 										</div>
-										<div id='date-chart' class='crossfilter-chart'>
-											<div class='title'>Date</div>
-										</div>
-										<div id='duration-chart' class='crossfilter-chart'>
-											<div class='title'>Duration</div>
-										</div>
-										<div id='subscribed-chart' class='crossfilter-chart'>
-											<div class='title'>Subscribed</div>
+										<div id='weather-charts'>
+											<div id='temperature-chart' class='crossfilter-chart'>
+												<div class='title'>Temperature</div>
+											</div>
+											<div id='precipitation-chart' class='crossfilter-chart'>
+												<div class='title'>Precipitation</div>
+											</div>
+											<div id='humidity-chart' class='crossfilter-chart'>
+												<div class='title'>Humidity</div>
+											</div>
+											<div id='snow-chart' class='crossfilter-chart'>
+												<div class='title'>Snow</div>
+											</div>
 										</div>
 									</div>
 									<div id='map-plot' class='map-scatter'>
@@ -83,27 +98,14 @@
 											<div class='title'>Transportation to Work</div>
 										</div> -->
 									</div>
-									<!-- later -->
-									<!-- weather stuff too -->
 								</div>
-							</div>
-						</md-tab-body>
-					</md-tab>
-
-					<md-tab label='two'>
-						<md-tab-label>
-							Station Map
-						</md-tab-label>
-						<md-tab-body class='md-padding'>
-							<div id='map-container' ng-controller='MapController'>
-								<div id="map"></div>
 							</div>
 						</md-tab-body>
 					</md-tab>
 
 					<md-tab label='three'>
 						<md-tab-label>
-							Photos Crossfilter
+							Streets Heatmap
 						</md-tab-label>
 						<md-tab-body class='md-padding'>
 							<div id='photo-charts-container' ng-controller='PhotosCrossfilterController'>
@@ -119,17 +121,13 @@
 						</md-tab-body>
 					</md-tab>
 
-					<md-tab label='four'>
+					<md-tab label='three'>
 						<md-tab-label>
-							Rides Crossfilter
+							Station Map
 						</md-tab-label>
 						<md-tab-body class='md-padding'>
-							<div id='station-charts-container' ng-controller='RidesCrossfilterController'>
-								<div id='station-charts'>
-									<div id='station-bubble-chart' class='chart'>
-										<div>Bubble</div>
-									</div>
-								</div>
+							<div id='map-container' ng-controller='MapController'>
+								<div id="map"></div>
 							</div>
 						</md-tab-body>
 					</md-tab>
