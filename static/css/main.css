@@ -183,3 +183,18 @@ md-content h1:first-child {
 	fill: #aaa;
 	opacity: 0.4;
 }
+
+
+/* HEATMAP */
+
+#heatmap-container {
+	/*display: none;*/
+	height: 600px;
+	width: 600px;
+	/*opacity: 0.6;*/
+	position: absolute !important;
+	top: 0;
+	left: 0;
+	margin: 11px 0px 0px 11px;
+	z-index: -1;
+}
