@@ -140,11 +140,12 @@ function barChart () {
 			axis = d3.svg.axis().orient('bottom'),
 			brush = d3.svg.brush(),
 			brushDirty,
-			dimension,
+			dimensions = [],
 			group,
 			round,
 			barWidth = 9,
-			brushToValues = function (x) { return x; };
+			brushToValues = function (x) { return x; },
+			brushCallback = function () {};
 
 	function chart (div) {
 		var width = x.range()[1],
@@ -246,15 +247,23 @@ function barChart () {
 			.attr('width', x(extent[1]) - x(extent[0]));
 
 		// the real meat
-		dimension.filterRange(extent.map(brushToValues));
+		dimensions.forEach(function (d) {
+			d.filterRange(extent.map(brushToValues));
+		});
+
+		brushCallback();
 	});
 
 	brush.on('brushend.chart', function () {
 		if (brush.empty()) {
 			var div = d3.select(this.parentNode.parentNode.parentNode);
 			div.select('#clip-' + id + ' rect').attr('x', null).attr('width', '100%');
-			dimension.filterAll();
+			dimensions.forEach(function (d) {
+				d.filterAll();
+			});
 		}
+
+		brushCallback();
 	});
 
 	// the dry approach doesn't work here because it ends up creating config
@@ -289,19 +298,27 @@ function barChart () {
 
 	chart.dimension = function (_) {
 		if (!arguments.length) {
-			return dimension;
+			return dimensions;
 		}
-		dimension = _;
+		if (_ === []) {
+			dimensions = [];
+		} else {
+			dimensions.push(_);
+		}
 		return chart;
 	};
 
 	chart.filter = function (_) {
 		if (_) {
 			brush.extent(_);
-			dimension.filterRange(_);
+			dimensions.forEach(function (d) {
+				d.filterRange(_);
+			});
 		} else {
 			brush.clear();
-			dimension.filterAll();
+			dimensions.forEach(function (d) {
+				d.filterAll();
+			});
 		}
 		brushDirty = true;
 		return chart;
@@ -341,6 +358,14 @@ function barChart () {
 			return brushToValues;
 		}
 		brushToValues = _;
+		return chart;
+	};
+
+	chart.brushCallback = function (_) {
+		if (!arguments.length) {
+			return brushCallback;
+		}
+		brushCallback = _;
 		return chart;
 	};
 

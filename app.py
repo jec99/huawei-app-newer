@@ -372,7 +372,7 @@ def get_photos():
 	t_end = request.args.get('t_end')
 
 	photos_query = """
-		select date, ST_X(geom), ST_Y(geom)
+		select id, date, ST_X(geom), ST_Y(geom)
 		from photos
 		where date >= '{0}' and date < '{1}'
 		order by date asc
@@ -380,9 +380,10 @@ def get_photos():
 	photos = db_session.execute(photos_query).fetchall()
 
 	ret = [{
-		'date': datetime.strftime(p[0], '%Y-%m-%d %H:%M:%S'),
-		'lng': p[1],
-		'lat': p[2]
+		'id': p[0],
+		'date': datetime.strftime(p[1], '%Y-%m-%d %H:%M:%S'),
+		'lng': p[2],
+		'lat': p[3]
 	} for p in photos]
 	return jsonify({'data': ret})
 
@@ -535,7 +536,7 @@ def get_weather():
 	t_end = request.args.get('t_end')
 
 	weather_query = """
-		select datetime, temperature, precipitation, humidity, snow
+		select datetime, temperature, precipitation, humidity
 		from weather
 		where datetime >= '{0}' and datetime < '{1}'
 		order by datetime asc
@@ -546,8 +547,7 @@ def get_weather():
 		'date': datetime.strftime(w[0], '%Y-%m-%d %H:%M:%S'),
 		'temperature': w[1],
 		'precipitation': w[2],
-		'humidity': w[3],
-		'snow': w[4]
+		'humidity': w[3]
 	} for w in weather]
 	return jsonify({'data': ret})
 

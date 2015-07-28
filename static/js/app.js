@@ -26,8 +26,8 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 				[map_center[0] + map_radius, map_center[1] + map_radius * Math.cos(map_center[1] / 180 * Math.PI)]
 			];
 
-	var map_width = 600,
-			map_height = 600;
+	var map_width = 400,
+			map_height = 400;
 
 	var xScatter = d3.scale.linear()
 				.domain([bounds[0][0], bounds[1][0]])
@@ -193,8 +193,11 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 		);
 
 		function getWeather (dt) {
-			// we're assuming we have data for every hour
-			var hour = Math.floor((dt - new Date(t_start)) / 1000 / 60 / 60);
+			// maybe buggy
+			var hour = Math.min(
+				Math.floor((dt - new Date(t_start)) / 1000 / 60 / 60),
+				wthr.length - 1
+			);
 			if (Math.abs(wthr[hour].date - dt) < 60 * 60 * 1000) {
 				return wthr[hour];
 			} else if (wthr[hour].date - dt > 0) {
@@ -212,13 +215,11 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 
 		var temperature = rides.dimension(function (e) { return e.weather.temperature; }),
 				precipitation = rides.dimension(function (e) { return e.weather.precipitation; }),
-				humidity = rides.dimension(function (e) { return e.weather.humidity; }),
-				snow = rides.dimension(function (e) { return e.weather.snow; });
+				humidity = rides.dimension(function (e) { return e.weather.humidity; });
 
-		var temperatures = temperature.group(function (t) { return Math.floor(t / 5); }),
+		var temperatures = temperature.group(function (t) { return Math.floor(t / 2); }),
 				precipitations = precipitation.group(function (p) { return Math.floor(p / 5); }),
-				humidities = humidity.group(function (p) { return Math.floor(p / 5); }),
-				snows = snow.group();
+				humidities = humidity.group(function (p) { return Math.floor(p / 5); });
 
 		scatter_charts[0]
 			.dimension(start_station)
@@ -239,16 +240,18 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 				.round(d3.time.day.round)
 				.x(d3.time.scale()
 					.domain([new Date(t_start), new Date(t_end)])
-					.rangeRound([0, 10 * 42]))
-				.tickFormat(function (e) { return daysOfWeek[e.getDay()]; }),
+					.rangeRound([0, 10 * 24]))
+				.barWidth(16)
+				.tickFormat(function (e) { return e.getDay() % 2 ? daysOfWeek[e.getDay()] : ''; }),
 
 			barChart()
 				.dimension(duration)
 				.group(durations)
-				.round(Math.floor)
+				// .round(Math.floor)
 				.x(d3.scale.linear()
-					.domain([0, 40])
-					.rangeRound([0, 10 * 40]))
+					.domain([0, 30])
+					.rangeRound([0, 10 * 24]))
+				.barWidth(7)
 				.tickFormat(function (e) { return e * 5; })
 				.brushToValues(function (e) { return e * 5; }),
 
@@ -257,8 +260,8 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 				.group(subscriptions)
 				.x(d3.scale.ordinal()
 					.domain([true, false])
-					.rangePoints([0, 10 * 10], 1))
-				.tickFormat(function (e) { return e; })
+					.rangePoints([0, 10 * 5], 1))
+				.tickFormat(function (e) { return e ? 'Y' : 'N'; })
 		];
 
 		weather_charts = [
@@ -268,17 +271,8 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 				.x(d3.scale.linear()
 					.domain([0, 20])
 					.rangeRound([0, 10 * 20]))
-				.tickFormat(function (e) { return e * 5; })
-				.brushToValues(function (e) { return e * 5; }),
-
-			barChart()
-				.dimension(precipitation)
-				.group(precipitations)
-				.x(d3.scale.linear()
-					.domain([0, 20])
-					.rangeRound([0, 10 * 20]))
-				.tickFormat(function (e) { return e * 5; })
-				.brushToValues(function (e) { return e * 5; }),
+				.tickFormat(function (e) { return e % 4 == 0 ? e * 2 : ''; })
+				.brushToValues(function (e) { return e * 2; }),
 
 			barChart()
 				.dimension(humidity)
@@ -286,16 +280,17 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 				.x(d3.scale.linear()
 					.domain([0, 20])
 					.rangeRound([0, 10 * 20]))
-				.tickFormat(function (e) { return e * 5; })
+				.tickFormat(function (e) { return e % 4 == 0 ? e * 5 : ''; })
 				.brushToValues(function (e) { return e * 5; }),
 
-			categoricalChart()
-				.dimension(snows)
-				.group(snows)
-				.x(d3.scale.ordinal()
-					.domain([true, false])
-					.rangePoints([0, 10 * 10], 1))
-				.tickFormat(function (e) { return e; })
+			// barChart()
+			// 	.dimension(precipitation)
+			// 	.group(precipitations)
+			// 	.x(d3.scale.linear()
+			// 		.domain([0, 20])
+			// 		.rangeRound([0, 10 * 20]))
+			// 	.tickFormat(function (e) { return e % 4 == 0 ? e * 5 : ''; })
+			// 	.brushToValues(function (e) { return e * 5; })
 		];
 		
 		ride_chart = d3.selectAll('#bike-ride-charts .crossfilter-chart')
@@ -325,22 +320,21 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 		});
 
 		var photos = crossfilter(data.data);
-		var date = photos.dimension(function (e) { return e.date; });
-		var dates = date.group(d3.time.day);
+		var date = photos.dimension(function (e) { return e.date; }),
+				hour = photos.dimension(function (e) { return e.date.getHours() + e.date.getMinutes() / 60; }),
+				hex = photos.dimension(function (e) { return [e.id, {lng: e.lng, lat: e.lat}]; });
+		var dates = date.group(d3.time.day),
+				hours = hour.group(Math.floor),
+				hexes = hex.group();
+
+		ride_charts[0].dimension(hour).brushCallback(rerenderHexbins);
+		ride_charts[1].dimension(date).brushCallback(rerenderHexbins);
 
 		var g = d3.select(scatter_elt)
 			.insert('g', ':first-child')
 			.attr('class', 'hexbin-0')
 			.attr('width', scatter_width)
 			.attr('height', scatter_height);
-
-		// this actually creates a really cool effect where you can zoom on one
-		// scatter plot and have the results be manifested on another, thanks
-		// to the zoom modifying xScatter and yScatter in-place
-		// var g = d3.select('#scatterplot')
-		// 	.append('svg')
-		// 	.append('g')
-		// 	.attr('class', 'hexbin-0');
 
 		// to register a new zoom listener: .on('zoom.namespace', function () {})
 
@@ -357,7 +351,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 			.range([0, 10]);
 
 		function computeHexbins () {
-			var hexbins = hexbin(data.data);
+			var hexbins = hexbin(hex.top(Infinity));
 			// maybe missing some bins, contrary to what the docs say
 			// so we need to add them back
 			var hex_hash = {};
@@ -390,18 +384,21 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 		zoom.on('zoom.hexbin', zoomHexbinHandler);
 
 		function zoomHexbinHandler () {
+			rerenderHexbins();
+			// if you want to do something on zoom
+			// .each(function (d) {
+			// 	var elt = d3.select(this);
+			// 	elt.attr('transform', elt.attr('transform') + 'scale(0.5)');
+			// });
+		}
+
+		function rerenderHexbins () {
 			hexagons = g.selectAll('path')
 				.data(computeHexbins(), function (d) { return d.i + "," + d.j; });
 			hexagons
 				.style('opacity', function (d) {
 					return 0.1, Math.min(d.length / 100, 1);
 				});
-
-				// if you want to do something on zoom
-				// .each(function (d) {
-				// 	var elt = d3.select(this);
-				// 	elt.attr('transform', elt.attr('transform') + 'scale(0.5)');
-				// });
 		}
 
 		return blockGroupsFactory.get('geometry');
@@ -421,9 +418,9 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 			.attr('height', map_height);
 
 		var g = d3.select(map_elt)
-			.call(zoomMap)
 			.attr('width', map_width)
 			.attr('height', map_height)
+			.call(zoomMap)
 			.append('g')
 			.attr('class', 'block-groups-0')
 			.attr('width', map_width)
@@ -551,6 +548,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 		}
 	});
 });
+
 
 function container () {
 	// use heatmaps to visualize the results of the PageRank algorithm

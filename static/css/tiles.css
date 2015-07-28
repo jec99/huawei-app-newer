@@ -1,0 +1,57 @@
+.map {
+        position: absolute;
+        overflow: hidden;
+        top: 1500px;
+    }
+    .layerWater,
+    .layerRoads,
+    .layerBuildings {
+        position: absolute;
+    }
+    .tileWater,
+    .tileRoad,
+    .tileBuilding {
+        position: absolute;
+        width: 256px;
+        height: 256px;
+    }
+    .tileWater path {
+        stroke: none;
+    }
+    .tileRoad path {
+        fill: none;
+        stroke: #ccb;
+        stroke-linejoin: round;
+        stroke-linecap: round;
+    }
+    .tileRoad .major_road {
+        stroke: #776;
+    }
+    .tileRoad .minor_road {
+        stroke: #ccb;
+    }
+    .tileRoad .highway {
+        stroke: #f39;
+        stroke-width: 1.5px;
+    }
+    .tileRoad .rail {
+        stroke: #7de;
+    }
+    .info {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        font-family: sans-serif;
+    }
+    .tileWater .ocean {
+        stroke: none;
+        fill: #ededed;
+    }
+    .tileWater .lake,
+    .tileWater .reservoir,
+    .tileWater .riverbank,
+    .tileWater .water,
+    .tileWater .basin,
+    .tileWater .dam {
+        fill: #deebf7;
+    }

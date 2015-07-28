@@ -9,6 +9,7 @@
 	<script type="text/javascript" src='static/js/jquery.js'></script>
 	<script type="text/javascript" src='static/js/tipsy.js'></script>
 	<script type="text/javascript" src='static/js/d3.js'></script>
+	<script type="text/javascript" src='static/js/d3.geo.tile.min.js'></script>
 	<script type="text/javascript" src='static/js/topojson.js'></script>
 	<script type="text/javascript" src='static/js/d3-hexbin.js'></script>
 	<script type="text/javascript" src='static/js/cubehelix.js'></script>
@@ -34,6 +35,7 @@
 	<link rel="stylesheet" type="text/css" href="static/css/tipsy.css">
 	<link rel="stylesheet" type="text/css" href='static/css/mapbox.css'></link>
 	<link rel="stylesheet" type="text/css" href='static/css/main.css'></link>
+	<link rel="stylesheet" type="text/css" href='static/css/tiles.css'></link>
 </head>
 <body ng-controller='MainController'>
 	<div id='primary-container'>
@@ -47,37 +49,27 @@
 						<md-tab-body class='md-padding'>
 							<div id='crossfilter-custom-container' ng-controller='CrossfilterController'>
 								<div id="charts">
+									<div id='bike-ride-charts'>
+										<div id='hour-chart-container' class='crossfilter-chart-container'>
+											<div id='hour-chart' class='crossfilter-chart'></div>
+											<div class='chart-title'>Hour</div>
+										</div>
+										<div id='date-chart-container' class='crossfilter-chart-container'>
+											<div id='date-chart' class='crossfilter-chart'></div>
+											<div class='chart-title'>Date</div>
+										</div>
+										<div id='duration-chart-container' class='crossfilter-chart-container'>
+											<div id='duration-chart' class='crossfilter-chart'></div>
+											<div class='chart-title'>Duration</div>
+										</div>
+										<div id='subscribed-chart-container' class='crossfilter-chart-container'>
+											<div id='subscribed-chart' class='crossfilter-chart'></div>
+											<div class='chart-title'>Subscribed</div>
+										</div>
+									</div>
 									<div id='scatterplot' class='crossfilter-scatter'>
 										<svg />
 										<div id='heatmap-container'></div>
-										<div id='bike-ride-charts'>
-											<div id='hour-chart' class='crossfilter-chart'>
-												<div class='title'>Hour</div>
-											</div>
-											<div id='date-chart' class='crossfilter-chart'>
-												<div class='title'>Date</div>
-											</div>
-											<div id='duration-chart' class='crossfilter-chart'>
-												<div class='title'>Duration</div>
-											</div>
-											<div id='subscribed-chart' class='crossfilter-chart'>
-												<div class='title'>Subscribed</div>
-											</div>
-										</div>
-										<div id='weather-charts'>
-											<div id='temperature-chart' class='crossfilter-chart'>
-												<div class='title'>Temperature</div>
-											</div>
-											<div id='precipitation-chart' class='crossfilter-chart'>
-												<div class='title'>Precipitation</div>
-											</div>
-											<div id='humidity-chart' class='crossfilter-chart'>
-												<div class='title'>Humidity</div>
-											</div>
-											<div id='snow-chart' class='crossfilter-chart'>
-												<div class='title'>Snow</div>
-											</div>
-										</div>
 									</div>
 									<div id='map-plot' class='map-scatter'>
 										<svg />
@@ -97,6 +89,16 @@
 										<div id='transportation-chart' class='crossfilter-chart'>
 											<div class='title'>Transportation to Work</div>
 										</div> -->
+									</div>
+									<div id='weather-charts'>
+										<div id='temperature-chart-container' class='crossfilter-chart-container'>
+											<div id='temperature-chart' class='crossfilter-chart'></div>
+											<div class='chart-title'>Temperature</div>
+										</div>
+										<div id='humidity-chart-container' class='crossfilter-chart-container'>
+											<div id='humidity-chart' class='crossfilter-chart'></div>
+											<div class='chart-title'>Humidity</div>
+										</div>
 									</div>
 								</div>
 							</div>
