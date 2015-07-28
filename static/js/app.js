@@ -14,33 +14,66 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 		subwayStationsFactory, pointsOfInterestFactory, weatherFactory) {
 	var t_start = '2012-06-01 00:00:00';
 	var t_end = '2012-06-15 00:00:00';
-	// var map_center = [-77.034136, 38.843928];
-	var map_center = [-77.034136, 38.96];
+	var map_center = [-77.037226, 38.895341];
 	var map_radius = 0.25;
 	var daysOfWeek = ['Su', 'M', 'T', 'W', 'Th', 'F', 'S'];
 	
 	var scatter_width = 500,
 			scatter_height = 500,
-			bounds = [
-				[map_center[0] - map_radius, map_center[1] - map_radius * Math.cos(map_center[1] / 180 * Math.PI)],
-				[map_center[0] + map_radius, map_center[1] + map_radius * Math.cos(map_center[1] / 180 * Math.PI)]
-			];
-
-	var map_width = 500,
+			map_width = 500,
 			map_height = 500;
 
-	var xScatter = d3.scale.linear()
-				.domain([bounds[0][0], bounds[1][0]])
-				.range([0, scatter_width]),
-			yScatter = d3.scale.linear()
-				.domain([bounds[0][1], bounds[1][1]])
-				.range([scatter_width, 0]);
+	var projection = d3.geo.mercator()
+		.scale(Math.pow(2, 18.5) / 2 / Math.PI)
+		.center(map_center)
+		.translate([0, 0]);
+	var center = projection(map_center);
+	projection.translate([map_width / 2 - center[0] / 2, map_height / 2 - center[1] / 2]);
+	var scale0 = projection.scale() * 2 * Math.PI;
 
-	var zoomRange = [1, 12];
+	// local approximation to the Mercator projection
+	var xMercator = d3.scale.linear()
+				.domain([map_center[0] - map_radius, map_center[0] + map_radius])
+				.range([
+					projection([map_center[0] - map_radius, map_center[1]])[0],
+					projection([map_center[0] + map_radius, map_center[1]])[0]
+				]),
+			yMercator = d3.scale.linear()
+				.domain([map_center[1] - map_radius, map_center[1] + map_radius])
+				.range([
+					projection([map_center[0], map_center[1] - map_radius])[1],
+					projection([map_center[0], map_center[1] + map_radius])[1]
+				]),
+			xOrig = xMercator.copy(),
+			yOrig = yMercator.copy();
+
 	var zoom = d3.behavior.zoom()
-		.x(xScatter)
-		.y(yScatter)
-		.scaleExtent(zoomRange);
+		.scale(scale0)
+		.scaleExtent([1 << 18, 1 << 23])
+		.on("zoom", zoomHandler);
+
+	zoomHandler();
+
+	function zoomHandler () {
+		changeProjection();
+		changeProjectionApproximation();
+	}
+
+	function changeProjectionApproximation () {
+		var loc = zoom.translate(),
+				scale = zoom.scale();
+		xMercator.domain(xOrig.range().map(function (x) {
+			return (x - loc[0]) * scale0 / scale;
+		}).map(xOrig.invert));
+    yMercator.domain(yOrig.range().map(function (y) {
+    	return (y - loc[1]) * scale0 / scale;
+    }).map(yOrig.invert));
+	}
+
+	function changeProjection () {
+		projection.scale(zoom.scale() / 2 / Math.PI)
+			.translate(zoom.translate());
+	}
 
 	var scatter_charts,
 			scatter_chart,
@@ -49,8 +82,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 			ride_charts,
 			ride_chart,
 			weather_charts,
-			weather_chart,
-			minimap;
+			weather_chart;
 
 	var scatter_elt = '#scatterplot > svg';
 	var map_elt = '#map-plot > svg'
@@ -77,6 +109,80 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 		weather_chart.each(render);
 		scatter_chart.each(function (sc) { render(sc.rerender); });
 	}
+
+	(function tileSetup () {
+		var tile = d3.geo.tile()
+				.size([map_width, map_height]);
+
+		var tileProjection = d3.geo.mercator();
+
+		var tilePath = d3.geo.path()
+				.projection(tileProjection);
+
+		var center = projection(map_center);
+
+		var zoom = d3.behavior.zoom()
+			.scale(projection.scale() * 2 * Math.PI)
+			.scaleExtent([1 << 18, 1 << 23])
+			.translate([map_width / 2 - center[0], map_height / 2 - center[1]])
+			.on("zoom", zoomed);
+
+		var map = d3.select(".map-container").append("div")
+			.attr("class", "map")
+			.style("width", map_width + "px")
+			.style("height", map_height + "px")
+			.call(zoom);
+
+		var layer = map.append("div")
+			.attr("class", "layer");
+
+		zoomed();
+
+		function zoomed() {
+			var tiles = tile
+				.scale(zoom.scale())
+				.translate(zoom.translate())();
+
+			projection
+				.scale(zoom.scale() / 2 / Math.PI)
+				.translate(zoom.translate());
+
+			var image = layer
+				.style("-webkit-transform", matrix3d(tiles.scale, tiles.translate))
+				.selectAll(".tile")
+				.data(tiles, function(d) { return d; });
+
+			image.exit()
+				.each(function(d) { this._xhr.abort(); })
+				.remove();
+
+			image.enter().append("svg")
+				.attr("class", "tile")
+				.style("left", function(d) { return d[0] * 256 + "px"; })
+				.style("top", function(d) { return d[1] * 256 + "px"; })
+				.each(function(d) {
+					var svg = d3.select(this);
+					this._xhr = d3.json("http://" + ["a", "b", "c"][(d[0] * 31 + d[1]) % 3] + ".tile.openstreetmap.us/vectiles-highroad/" + d[2] + "/" + d[0] + "/" + d[1] + ".json", function(error, json) {
+						var k = Math.pow(2, d[2]) * 256; // size of the world in pixels
+
+						tilePath.projection()
+								.translate([k / 2 - d[0] * 256, k / 2 - d[1] * 256]) // [0°,0°] in pixels
+								.scale(k / 2 / Math.PI);
+
+						svg.selectAll("path")
+								.data(json.features.sort(function(a, b) { return a.properties.sort_key - b.properties.sort_key; }))
+							.enter().append("path")
+								.attr("class", function(d) { return d.properties.kind; })
+								.attr("d", tilePath);
+					});
+				});
+		}
+
+		function matrix3d(scale, translate) {
+			var k = scale / 256, r = scale % 1 ? Number : Math.round;
+			return "matrix3d(" + [k, 0, 0, 0, 0, k, 0, 0, 0, 0, k, 0, r(translate[0] * scale), r(translate[1] * scale), 0, 1 ] + ")";
+		}
+	});
 
 	stationsFactory.get().then(function (data) {
 		/*
@@ -107,8 +213,9 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 			scatterPlot()
 				.width(scatter_width)
 				.height(scatter_height)
-				.x(xScatter)
-				.y(yScatter)
+				.x(xMercator)
+				.y(yMercator)
+				// .projection(projection)
 				// sometimes you want attributes, like r, color, opacity, etc., to
 				// be based on absolute values, sometimes on relative values. this
 				// defines a scalar relative value metric, and its maximum and
@@ -300,7 +407,6 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 		/*
 			TO DO
 				- put in charts.js instead of here
-				- integrate with crossfilter
 		*/
 
 		data.data.forEach(function (e) {
@@ -324,13 +430,11 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 			.attr('width', scatter_width)
 			.attr('height', scatter_height);
 
-		// to register a new zoom listener: .on('zoom.namespace', function () {})
-
 		var hexbin = d3.hexbin()
 			.size([scatter_width, scatter_height])
 			.radius(20)
-			.x(function (e) { return xScatter(e.lng); })
-			.y(function (e) { return yScatter(e.lat); });
+			.x(function (e) { return xMercator(e.lng); })
+			.y(function (e) { return yMercator(e.lat); });
 
 		// change this later
 		// currently the radius is not being used
@@ -369,16 +473,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 				return Math.min(d.length / 100, 1);
 			});
 
-		zoom.on('zoom.hexbin', zoomHexbinHandler);
-
-		function zoomHexbinHandler () {
-			rerenderHexbins();
-			// if you want to do something on zoom
-			// .each(function (d) {
-			// 	var elt = d3.select(this);
-			// 	elt.attr('transform', elt.attr('transform') + 'scale(0.5)');
-			// });
-		}
+		zoom.on('zoom.hexbin', rerenderHexbins);
 
 		function rerenderHexbins () {
 			hexagons = g.selectAll('path')
@@ -387,6 +482,12 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 				.style('opacity', function (d) {
 					return 0.1, Math.min(d.length / 100, 1);
 				});
+
+			// if you want to do something on zoom
+			// .each(function (d) {
+			// 	var elt = d3.select(this);
+			// 	elt.attr('transform', elt.attr('transform') + 'scale(0.5)');
+			// });
 		}
 
 		return subwayStationsFactory.get();
@@ -396,6 +497,8 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 			.attr('class', 'subway-stations-0')
 			.attr('width', map_width)
 			.attr('height', map_height);
+
+		var semanticZoom = function (r) { return Math.sqrt(r); };
 
 		var stations = g.selectAll('circle')
 			.data(data.data)
@@ -408,12 +511,11 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 			stations.attr('transform', transform);
 		});
 
-		var semanticZoom = Math.sqrt;
-
 		function transform (d) {
-			var coords = [d.lng, d.lat];
-			var scaling = d3.event ? semanticZoom(d3.event.scale) : zoom.scaleExtent()[0];
-			return 'translate(' + xScatter(coords[0]) + ',' + yScatter(coords[1]) + ')scale(' + scaling + ')';
+			var c = [d.lng, d.lat];
+			var scale = d3.event ? zoom.scale() : scale0;
+			scale = semanticZoom(scale / scale0);
+			return 'translate(' + xMercator(c[0]) + ',' + yMercator(c[1]) + ')scale(' + scale + ')';
 		}
 
 		return pointsOfInterestFactory.get();
@@ -423,6 +525,8 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 				.attr('class', 'locations-0')
 				.attr('width', map_width)
 				.attr('height', map_height);
+
+		var semanticZoom = function (r) { return Math.sqrt(r); };
 
 		var locations = g.selectAll('circle')
 			.data(data.data)
@@ -435,12 +539,11 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 			locations.attr('transform', transform);
 		});
 
-		var semanticZoom = function (x) { return Math.pow(x, 1/3); };
-
 		function transform (d) {
-			var coords = [d.lng, d.lat];
-			var scaling = d3.event ? semanticZoom(d3.event.scale) : zoom.scaleExtent()[0];
-			return 'translate(' + xScatter(coords[0]) + ',' + yScatter(coords[1]) + ')scale(' + scaling + ')';
+			var c = [d.lng, d.lat];
+			var scale = d3.event ? zoom.scale() : scale0;
+			scale = semanticZoom(scale / scale0);
+			return 'translate(' + xMercator(c[0]) + ',' + yMercator(c[1]) + ')scale(' + scale + ')';
 		}
 	});
 });

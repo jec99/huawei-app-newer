@@ -27,10 +27,12 @@ function scatterPlot () {
 		coordinates: null
 	};
 
+	var blacklist = ['zoom'];
 
 	// real locals, not configs
-	var id = scatterPlot.id++;
-	var circle = null;
+	var id = scatterPlot.id++,
+			circle = null,
+			scale0 = 1;
 
 	function chart (elt) {
 		elt.each(function () {
@@ -64,9 +66,10 @@ function scatterPlot () {
 		}
 
 		function transform (d) {
-			var coords = config.coordinates(d);
-			var scaling = d3.event ? config.semanticZoom(d3.event.scale) : config.zoom.scaleExtent()[0];
-			return 'translate(' + config.x(coords[0]) + ',' + config.y(coords[1]) + ')scale(' + scaling + ')';
+			var c = config.coordinates(d);
+			var scale = d3.event ? config.zoom.scale() : scale0;
+			scale = config.semanticZoom(scale / scale0);
+			return 'translate(' + config.x(c[0]) + ',' + config.y(c[1]) + ')scale(' + scale + ')';
 		}
 	}
 
@@ -115,7 +118,18 @@ function scatterPlot () {
 	}
 
 	for (var conf in config) {
-		chart[conf] = configSetter(conf);
+		if (blacklist.indexOf(conf) == -1) {
+			chart[conf] = configSetter(conf);
+		}
+	}
+
+	chart.zoom = function (_) {
+		if (!arguments.length) {
+			return config.zoom;
+		}
+		config.zoom = _;
+		scale0 = _.scale();
+		return chart;
 	}
 
 	return chart;
