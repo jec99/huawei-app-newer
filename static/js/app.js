@@ -19,39 +19,27 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 	var map_radius = 0.25;
 	var daysOfWeek = ['Su', 'M', 'T', 'W', 'Th', 'F', 'S'];
 	
-	var scatter_width = 600,
-			scatter_height = 600,
+	var scatter_width = 500,
+			scatter_height = 500,
 			bounds = [
 				[map_center[0] - map_radius, map_center[1] - map_radius * Math.cos(map_center[1] / 180 * Math.PI)],
 				[map_center[0] + map_radius, map_center[1] + map_radius * Math.cos(map_center[1] / 180 * Math.PI)]
 			];
 
-	var map_width = 400,
-			map_height = 400;
+	var map_width = 500,
+			map_height = 500;
 
 	var xScatter = d3.scale.linear()
 				.domain([bounds[0][0], bounds[1][0]])
 				.range([0, scatter_width]),
 			yScatter = d3.scale.linear()
 				.domain([bounds[0][1], bounds[1][1]])
-				.range([scatter_width, 0]),
-			xScatterMap = d3.scale.linear()
-				.domain([bounds[0][0], bounds[1][0]])
-				.range([0, map_width]),
-			yScatterMap = d3.scale.linear()
-				.domain([bounds[0][1], bounds[1][1]])
-				.range([map_width, 0])
-			xScatterMapOriginal = xScatterMap.copy(),
-			yScatterMapOriginal = yScatterMap.copy();
+				.range([scatter_width, 0]);
 
 	var zoomRange = [1, 12];
 	var zoom = d3.behavior.zoom()
 		.x(xScatter)
 		.y(yScatter)
-		.scaleExtent(zoomRange);
-	var zoomMap = d3.behavior.zoom()
-		.x(xScatterMap)
-		.y(yScatterMap)
 		.scaleExtent(zoomRange);
 
 	var scatter_charts,
@@ -70,6 +58,15 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 		.call(zoom)
 		.attr('width', scatter_width)
 		.attr('height', scatter_height);
+
+	d3.select(map_elt)
+		.call(zoom)
+		.attr('width', map_width)
+		.attr('height', map_height)
+		.append('rect')
+		.attr('class', 'overlay')
+		.attr('width', map_width)
+		.attr('height', map_height);
 
 	function render (method) {
 		d3.select(this).call(method);
@@ -132,7 +129,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 				})
 				.zoom(zoom)
 				// semanticZoom changes the radius depending on the zoom level
-				.semanticZoom(function () { return 1; })
+				.semanticZoom(function (s) { return 1; })
 				// put the dimension and the group in later, when the data arrives
 				.points(stations_list)
 				// takes in the bound data and outputs [x, y]
@@ -282,15 +279,6 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 					.rangeRound([0, 10 * 20]))
 				.tickFormat(function (e) { return e % 4 == 0 ? e * 5 : ''; })
 				.brushToValues(function (e) { return e * 5; }),
-
-			// barChart()
-			// 	.dimension(precipitation)
-			// 	.group(precipitations)
-			// 	.x(d3.scale.linear()
-			// 		.domain([0, 20])
-			// 		.rangeRound([0, 10 * 20]))
-			// 	.tickFormat(function (e) { return e % 4 == 0 ? e * 5 : ''; })
-			// 	.brushToValues(function (e) { return e * 5; })
 		];
 		
 		ride_chart = d3.selectAll('#bike-ride-charts .crossfilter-chart')
@@ -401,98 +389,6 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 				});
 		}
 
-		return blockGroupsFactory.get('geometry');
-	}).then(function (data) {
-		/*
-			TO DO
-			- click to get info
-			- make the map have a selection box, so you can see where you've zoomed
-					in the scatter plot
-			- add in census data, put in crossfilter
-			- puts in charts.js instead of here
-		*/
-
-		d3.select(map_elt).append('rect')
-			.attr('class', 'overlay')
-			.attr('width', map_width)
-			.attr('height', map_height);
-
-		var g = d3.select(map_elt)
-			.attr('width', map_width)
-			.attr('height', map_height)
-			.call(zoomMap)
-			.append('g')
-			.attr('class', 'block-groups-0')
-			.attr('width', map_width)
-			.attr('height', map_height);
-
-		var path = d3.geo.path();
-		path.projection(function (coords) {
-			return coords.map(function (c) {
-				return [xScatterMap(c[0]), yScatterMap(c[1])];
-			});
-		});
-
-		block_groups = g.selectAll('path')
-			.data(topojson.feature(data.geometry, data.geometry.objects.stdin).features)
-			.enter().append('path')
-			.attr('d', path)
-			.attr('class', 'feature');
-			// .on('click', function (d) {
-			// 	var elt = d3.select(this);
-			// 	this.selected = !this.selected;
-			// 	elt.classed('selected', this.selected);
-			// });
-
-		// creating the minimap
-
-		// the common coordinate system the two maps share is lng-lat,
-		// so we need to convert between these using scale.inverse(y)
-		// then convert back. these are linear transformations so it's
-		// computationally negligible
-		// the y axes are inverted because in html y is measured down,
-		// while in the real world it's measured up...
-
-		function minimapCoords () {
-			var x0_lnglat = xScatter.invert(0),
-					y0_lnglat = yScatter.invert(scatter_height),
-					x1_lnglat = xScatter.invert(scatter_width),
-					y1_lnglat = yScatter.invert(0);
-
-			// old minimap bug: takes into account translations/zooms in the
-			// map pane. it shouldn't; we need to keep copies of the original
-			// map x/y ranges and use those
-			var x0 = xScatterMapOriginal(x0_lnglat),
-					y0 = yScatterMapOriginal(y1_lnglat),
-					x1 = xScatterMapOriginal(x1_lnglat),
-					y1 = yScatterMapOriginal(y0_lnglat);
-
-			return [[x0, y0], [x1, y1]];
-		}
-
-		var coords = minimapCoords();
-		minimap = g.append('rect')
-			.classed('minimap', true)
-			.style('pointer-events', 'none')
-			.attr('width', coords[1][0] - coords[0][0])
-			.attr('height', coords[1][1] - coords[0][1])
-			.attr('transform', 'translate(' + coords[0][0] + ',' + coords[0][1] + ')');
-
-		zoomMap.on('zoom.map', mapZoomHandler);
-		function mapZoomHandler () {
-			g.style('stroke-width', 0.75 / Math.pow(d3.event.scale, 0.5) + 'px')
-				.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
-		}
-
-		zoom.on('zoom.minimap', minimapZoomHandler);
-		function minimapZoomHandler () {
-			var coords = minimapCoords();
-			minimap
-				.attr('width', coords[1][0] - coords[0][0])
-				.attr('height', coords[1][1] - coords[0][1])
-				.attr('transform', 'translate(' + coords[0][0] + ',' + coords[0][1] + ')');
-		}
-
 		return subwayStationsFactory.get();
 	}).then(function (data) {
 		var g = d3.select(map_elt)
@@ -508,7 +404,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 			.style('fill', '#536DFE')
 			.attr('transform', transform);
 
-		zoomMap.on('zoom.subway_stations', function () {
+		zoom.on('zoom.subwayStations', function () {
 			stations.attr('transform', transform);
 		});
 
@@ -516,8 +412,8 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 
 		function transform (d) {
 			var coords = [d.lng, d.lat];
-			var scaling = d3.event ? semanticZoom(d3.event.scale) : zoomMap.scaleExtent()[0];
-			return 'translate(' + xScatterMap(coords[0]) + ',' + yScatterMap(coords[1]) + ')scale(' + scaling + ')';
+			var scaling = d3.event ? semanticZoom(d3.event.scale) : zoom.scaleExtent()[0];
+			return 'translate(' + xScatter(coords[0]) + ',' + yScatter(coords[1]) + ')scale(' + scaling + ')';
 		}
 
 		return pointsOfInterestFactory.get();
@@ -535,7 +431,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 			.style('fill', '#FF5252')
 			.attr('transform', transform);
 
-		zoomMap.on('zoom.locations', function () {
+		zoom.on('zoom.locations', function () {
 			locations.attr('transform', transform);
 		});
 
@@ -543,8 +439,8 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 
 		function transform (d) {
 			var coords = [d.lng, d.lat];
-			var scaling = d3.event ? semanticZoom(d3.event.scale) : zoomMap.scaleExtent()[0];
-			return 'translate(' + xScatterMap(coords[0]) + ',' + yScatterMap(coords[1]) + ')scale(' + scaling + ')';
+			var scaling = d3.event ? semanticZoom(d3.event.scale) : zoom.scaleExtent()[0];
+			return 'translate(' + xScatter(coords[0]) + ',' + yScatter(coords[1]) + ')scale(' + scaling + ')';
 		}
 	});
 });

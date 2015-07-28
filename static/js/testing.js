@@ -15,29 +15,14 @@ angular.module('testingApp', ['mapApp.factories'])
 			];
 
 	var xScatter = d3.scale.linear()
-				.domain([bounds[0][0], bounds[1][0]])
-				.range([0, width]),
-			yScatter = d3.scale.linear()
-				.domain([bounds[0][1], bounds[1][1]])
-				.range([width, 0])
-
-	window.xScatter = xScatter;
-	window.yScatter = yScatter;
+			.domain([bounds[0][0], bounds[1][0]])
+			.range([0, width]),
+		yScatter = d3.scale.linear()
+			.domain([bounds[0][1], bounds[1][1]])
+			.range([width, 0])
 
 	var tile = d3.geo.tile()
 			.size([width, height]);
-
-	var proj_function = function (x, y) {
-		return [xScatter(x), yScatter(y)];
-	};
-
-	proj_function.invert = function (x, y) {
-		return [xScatter.invert(x), yScatter.invert(y)]
-	};
-
-	var projection = d3.geo.projection(proj_function)
-		.scale((1 << 20) / 2 / Math.PI)
-		.translate([-width / 2, -height / 2]);
 
 	projection = d3.geo.mercator()
 		.scale((1 << 21) / 2 / Math.PI)

@@ -1,3 +1,9 @@
+
+.map {
+  position: relative;
+  overflow: hidden;
+}
+
 .layer {
   position: absolute;
 }
