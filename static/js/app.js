@@ -429,7 +429,7 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 		var path = d3.geo.path();
 		path.projection(function (coords) {
 			return coords.map(function (c) {
-				return [xScatterMap(coords[0]), yScatterMap(coords[1])];
+				return [xScatterMap(c[0]), yScatterMap(c[1])];
 			});
 		});
 

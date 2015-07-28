@@ -552,6 +552,11 @@ def get_weather():
 	return jsonify({'data': ret})
 
 
+@app.route('/testing')
+def testing():
+	return send_from_directory('static/html', 'testing.html')
+
+
 if __name__ == '__main__':
 	app.run()
 
