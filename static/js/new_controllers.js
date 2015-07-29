@@ -1,9 +1,11 @@
 
+var day_abbr = ['Su', 'M', 'T', 'W', 'Th', 'F', 'S'];
+
 angular.module('mapApp.newControllers', [])
 
-.controller('NewController', function ($rootScope, $scope, $q,
-	$timeout, ridesFactory, stationsFactory, photosFactory, blockGroupsFactory,
-		subwayStationsFactory, pointsOfInterestFactory, weatherFactory) {
+.controller('NewController', function ($scope, $q, subwayStationsFactory,
+		stationsFactory, photosFactory, ridesFactory, pointsOfInterestFactory,
+		weatherFactory) {
 
 	var t_start = '2012-06-01 00:00:00',
 			t_end = '2012-06-15 00:00:00';
@@ -14,6 +16,13 @@ angular.module('mapApp.newControllers', [])
 			scatter_height = 500,
 			map_width = 500,
 			map_height = 500;
+
+	var scatter_charts,
+			ride_charts,
+			weather_charts,
+			scatter_chart_selection,
+			ride_chart_selection,
+			weather_chart_selection;
 
 	var projection = d3.geo.mercator()
 		.scale((1 << 19) / 2 / Math.PI)
@@ -72,18 +81,6 @@ angular.module('mapApp.newControllers', [])
 	}
 
 	function update_linear_projection () {
-		// maybe faster but currently off by 250px at the beginning
-		// and it's less intuitive
-		// 
-		// var loc = zoom.translate(),
-		// 		scale = zoom.scale();
-		// x_projection.domain(x_orig.range().map(function (x) {
-		// 	return (x - loc[0]) * scale0 / scale;
-		// }).map(x_orig.invert));
-		// y_projection.domain(y_orig.range().map(function (y) {
-		// 	return (y - loc[1]) * scale0 / scale;
-		// }).map(y_orig.invert));
-
 		x_projection.range([
 			projection([map_center[0] - map_radius, map_center[1]])[0],
 			projection([map_center[0] + map_radius, map_center[1]])[0]
@@ -150,14 +147,13 @@ angular.module('mapApp.newControllers', [])
 		.attr('width', scatter_width)
 		.attr('height', scatter_height);
 
-	var scatter_charts,
-			scatter_chart_selection;
-
 	function render (method) {
 		d3.select(this).call(method);
 	}
 
-	function renderAll () {
+	function render_all () {
+		ride_chart_selection.each(render);
+		weather_chart_selection.each(render);
 		scatter_chart_selection.each(function (sc) { render(sc.rerender); });
 	}
 
@@ -263,9 +259,172 @@ angular.module('mapApp.newControllers', [])
 			scale = semanticZoom(scale / scale0);
 			return transform2d(scale, translate);
 		}
-	});
 
-	var days_of_week = ['Su', 'M', 'T', 'W', 'Th', 'F', 'S'];
+		return $q.all([
+			ridesFactory.get(t_start, t_end),
+			weatherFactory.get(t_start, t_end)
+		]);
+	}).then(function (data) {
+		var rds = data[0].data,
+				wthr = data[1].data;
+
+		wthr.forEach(function (e) { e.date = new Date(e.date); });
+
+		function getWeather (dt) {
+			var hour = Math.min(
+				Math.floor((dt - new Date(t_start)) / 1000 / 60 / 60),
+				wthr.length - 1
+			);
+			if (Math.abs(wthr[hour].date - dt) < 60 * 60 * 1000) {
+				return wthr[hour];
+			} else if (wthr[hour].date - dt > 0) {
+				var i = 1;
+				while (hour - i > 0 && Math.abs(wthr[hour - i].date - dt) > 60 * 1000) i += 1;
+				return wthr[hour - i];
+			} else {
+				var i = 1;
+				while (hour + i < wthr.length - 1 && Math.abs(wthr[hour + i].date - dt) > 60 * 1000) i += 1;
+				return wthr[hour + i];
+			}
+		}
+
+		rds.forEach(function (e) {
+			e.date = new Date(e.date);
+			e.weather = getWeather(e.date);
+		});
+
+		var rides = crossfilter(rds);
+
+		var date = rides.dimension(function (e) { return e.date; }),
+				hour = rides.dimension(function (e) { return e.date.getHours() + e.date.getMinutes() / 60; }),
+				duration = rides.dimension(function (e) { return e.duration / 60; }),
+				subscribed = rides.dimension(function (e) { return e.subscribed; }),
+				start_station = rides.dimension(function (e) { return e.start_id; }),
+				temperature = rides.dimension(function (e) { return e.weather.temperature; }),
+				humidity = rides.dimension(function (e) { return e.weather.humidity; });
+
+		var dates = date.group(d3.time.day),
+				hours = hour.group(Math.floor),
+				durations = duration.group(function (e) { return Math.floor(e / 5); }),
+				subscriptions = subscribed.group(),
+				start_stations = start_station.group()
+				temperatures = temperature.group(function (t) { return Math.floor(t / 2); }),
+				humidities = humidity.group(function (h) { return Math.floor(h / 5); });
+
+		start_stations.reduce(
+			function (p, v) {
+				p.subscribed += Number(v.subscribed);
+				p.casual += Number(!v.subscribed);
+				return p;
+			}, function (p, v) {
+				p.subscribed -= Number(v.subscribed);
+				p.casual -= Number(!v.subscribed);
+				return p;
+			}, function () {
+				return {
+					subscribed: 0,
+					casual: 0
+				}
+			}
+		);
+
+		scatter_charts[0]
+			.dimension(start_station)
+			.group(start_stations);
+
+		ride_charts = [
+			barChart()
+				.dimension(hour)
+				.group(hours)
+				.x(d3.scale.linear()
+					.domain([0, 24])
+					.rangeRound([0, 10 * 24]))
+				.tickFormat(function (e) { return e % 4 == 0 ? e : null; }),
+
+			barChart()
+				.dimension(date)
+				.group(dates)
+				.round(d3.time.day.round)
+				.x(d3.time.scale()
+					.domain([new Date(t_start), new Date(t_end)])
+					.rangeRound([0, 10 * 24]))
+				.barWidth(16)
+				.tickFormat(function (e) { return e.getDay() % 2 ? day_abbr[e.getDay()] : ''; }),
+
+			barChart()
+				.dimension(duration)
+				.group(durations)
+				// .round(Math.floor)
+				.x(d3.scale.linear()
+					.domain([0, 30])
+					.rangeRound([0, 10 * 24]))
+				.barWidth(7)
+				.tickFormat(function (e) { return e * 5; })
+				.brushToValues(function (e) { return e * 5; }),
+
+			categoricalChart()
+				.dimension(subscribed)
+				.group(subscriptions)
+				.x(d3.scale.ordinal()
+					.domain([true, false])
+					.rangePoints([0, 10 * 5], 1))
+				.tickFormat(function (e) { return e ? 'Y' : 'N'; })
+		];
+
+		weather_charts = [
+			barChart()
+				.dimension(temperature)
+				.group(temperatures)
+				.x(d3.scale.linear()
+					.domain([0, 20])
+					.rangeRound([0, 10 * 20]))
+				.tickFormat(function (e) { return e % 4 == 0 ? e * 2 : ''; })
+				.brushToValues(function (e) { return e * 2; }),
+
+			barChart()
+				.dimension(humidity)
+				.group(humidities)
+				.x(d3.scale.linear()
+					.domain([0, 20])
+					.rangeRound([0, 10 * 20]))
+				.tickFormat(function (e) { return e % 4 == 0 ? e * 5 : ''; })
+				.brushToValues(function (e) { return e * 5; }),
+		];
+
+		ride_chart_selection = d3.selectAll('#charts-container #bike-ride-charts .crossfilter-chart')
+			.data(ride_charts)
+			.each(function (chart) {
+				chart.on('brush', render_all).on('brushend', render_all);
+			});
+
+		weather_chart_selection = d3.selectAll('#charts-container #weather-charts .crossfilter-chart')
+			.data(weather_charts)
+			.each(function (chart) {
+				chart.on('brush', render_all).on('brushend', render_all);
+			});
+
+		render_all();
+
+		return photosFactory.get(t_start, t_end);
+	}).then(function (data) {
+		data.data.forEach(function (e) {
+			e.date = new Date(e.date);
+		});
+
+		var photos = crossfilter(data.data);
+		var date = photos.dimension(function (e) { return e.date; }),
+				hour = photos.dimension(function (e) { return e.date.getHours() + e.date.getMinutes() / 60; }),
+				hex = photos.dimension(function (e) { return [e.id, {lng: e.lng, lat: e.lat}]; });
+		var dates = date.group(d3.time.day),
+				hours = hour.group(Math.floor),
+				hexes = hex.group();
+
+		ride_charts[0].dimension(hour).brushCallback(rerenderHexbins);
+		ride_charts[1].dimension(date).brushCallback(rerenderHexbins);
+
+		
+		
+	});
 
 })
 

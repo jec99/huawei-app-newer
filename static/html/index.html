@@ -48,7 +48,7 @@
 							Rides Crossfilter (new)
 						</md-tab-label>
 						<md-tab-body class='md-padding'>
-							<div id='crossfilter-custom-container' ng-controller='CrossfilterController'>
+							<!-- <div id='crossfilter-custom-container' ng-controller='CrossfilterController'>
 								<div id="charts">
 									<div id='bike-ride-charts'>
 										<div id='hour-chart-container' class='crossfilter-chart-container'>
@@ -88,9 +88,8 @@
 											<div class='chart-title'>Humidity</div>
 										</div>
 									</div>
-
 								</div>
-							</div>
+							</div> -->
 						</md-tab-body>
 					</md-tab>
 
@@ -100,11 +99,41 @@
 						</md-tab-label>
 						<md-tab-body class='md-padding'>
 							<div id='charts-container' ng-controller='NewController'>
+								<div id='bike-ride-charts'>
+									<div id='hour-chart-container' class='crossfilter-chart-container'>
+										<div id='hour-chart' class='crossfilter-chart'></div>
+										<div class='chart-title'>Hour</div>
+									</div>
+									<div id='date-chart-container' class='crossfilter-chart-container'>
+										<div id='date-chart' class='crossfilter-chart'></div>
+										<div class='chart-title'>Date</div>
+									</div>
+									<div id='duration-chart-container' class='crossfilter-chart-container'>
+										<div id='duration-chart' class='crossfilter-chart'></div>
+										<div class='chart-title'>Duration</div>
+									</div>
+									<div id='subscribed-chart-container' class='crossfilter-chart-container'>
+										<div id='subscribed-chart' class='crossfilter-chart'></div>
+										<div class='chart-title'>Subscribed</div>
+									</div>
+								</div>
+
 								<div id='scatterplot' class='crossfilter-scatter'>
 									<svg />
 								</div>
 
 								<div class='map-container'></div>
+
+								<div id='weather-charts'>
+									<div id='temperature-chart-container' class='crossfilter-chart-container'>
+										<div id='temperature-chart' class='crossfilter-chart'></div>
+										<div class='chart-title'>Temperature</div>
+									</div>
+									<div id='humidity-chart-container' class='crossfilter-chart-container'>
+										<div id='humidity-chart' class='crossfilter-chart'></div>
+										<div class='chart-title'>Humidity</div>
+									</div>
+								</div>
 							</div>
 						</md-tab-body>
 					</md-tab>
