@@ -1,9 +1,9 @@
 
 var day_abbr = ['Su', 'M', 'T', 'W', 'Th', 'F', 'S'];
 
-angular.module('mapApp.newControllers', [])
+angular.module('mapApp.chartController', [])
 
-.controller('NewController', function ($scope, $q, subwayStationsFactory,
+.controller('ChartsController', function ($scope, $q, subwayStationsFactory,
 		stationsFactory, photosFactory, ridesFactory, pointsOfInterestFactory,
 		weatherFactory) {
 

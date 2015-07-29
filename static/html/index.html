@@ -27,7 +27,7 @@
 
 	<script type="text/javascript" src='static/js/factories.js'></script>
 	<script type="text/javascript" src='static/js/map-controller.js'></script>
-	<script type="text/javascript" src='static/js/new_controllers.js'></script>
+	<script type="text/javascript" src='static/js/chart-controller.js'></script>
 	<script type="text/javascript" src='static/js/charts.js'></script>
 	<script type="text/javascript" src='static/js/app.js'></script>
 
@@ -42,63 +42,13 @@
 	<div id='primary-container'>
 		<div id='main-tabs-container'>
 			<md-content class='md-padding'>
-				<md-tabs md-dynamic-height='false' md-selected='1'>
+				<md-tabs md-dynamic-height='false' md-selected='0'>
 					<md-tab label='one'>
 						<md-tab-label>
-							Rides Crossfilter (new)
+							Rides Crossfilter
 						</md-tab-label>
 						<md-tab-body class='md-padding'>
-							<!-- <div id='crossfilter-custom-container' ng-controller='CrossfilterController'>
-								<div id="charts">
-									<div id='bike-ride-charts'>
-										<div id='hour-chart-container' class='crossfilter-chart-container'>
-											<div id='hour-chart' class='crossfilter-chart'></div>
-											<div class='chart-title'>Hour</div>
-										</div>
-										<div id='date-chart-container' class='crossfilter-chart-container'>
-											<div id='date-chart' class='crossfilter-chart'></div>
-											<div class='chart-title'>Date</div>
-										</div>
-										<div id='duration-chart-container' class='crossfilter-chart-container'>
-											<div id='duration-chart' class='crossfilter-chart'></div>
-											<div class='chart-title'>Duration</div>
-										</div>
-										<div id='subscribed-chart-container' class='crossfilter-chart-container'>
-											<div id='subscribed-chart' class='crossfilter-chart'></div>
-											<div class='chart-title'>Subscribed</div>
-										</div>
-									</div>
-
-									<div id='scatterplot' class='crossfilter-scatter'>
-										<svg />
-										<div id='heatmap-container'></div>
-									</div>
-
-									<div id='map-plot'>
-										<svg />
-									</div>
-
-									<div id='weather-charts'>
-										<div id='temperature-chart-container' class='crossfilter-chart-container'>
-											<div id='temperature-chart' class='crossfilter-chart'></div>
-											<div class='chart-title'>Temperature</div>
-										</div>
-										<div id='humidity-chart-container' class='crossfilter-chart-container'>
-											<div id='humidity-chart' class='crossfilter-chart'></div>
-											<div class='chart-title'>Humidity</div>
-										</div>
-									</div>
-								</div>
-							</div> -->
-						</md-tab-body>
-					</md-tab>
-
-					<md-tab label='three'>
-						<md-tab-label>
-							New Rides Crossfilter (New New)
-						</md-tab-label>
-						<md-tab-body class='md-padding'>
-							<div id='charts-container' ng-controller='NewController'>
+							<div id='charts-container' ng-controller='ChartsController'>
 								<div id='bike-ride-charts'>
 									<div id='hour-chart-container' class='crossfilter-chart-container'>
 										<div id='hour-chart' class='crossfilter-chart'></div>
@@ -135,6 +85,15 @@
 									</div>
 								</div>
 							</div>
+						</md-tab-body>
+					</md-tab>
+
+					<md-tab label='one'>
+						<md-tab-label>
+							Graph
+						</md-tab-label>
+						<md-tab-body class='md-padding'>
+							
 						</md-tab-body>
 					</md-tab>
 

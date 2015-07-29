@@ -23,11 +23,4 @@
 
 .tile .major_road { stroke: #776; }
 .tile .minor_road { stroke: #ccb; }
-.tile .highway { stroke: #f39; stroke-width: 1.5px; }
-.tile .rail { stroke: #7de; }
-
-.info {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-}
+.tile .highway { stroke: #3C3C33; stroke-width: 1px; }
