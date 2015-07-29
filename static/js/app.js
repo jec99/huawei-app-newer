@@ -111,94 +111,6 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 		scatter_chart.each(function (sc) { render(sc.rerender); });
 	}
 
-	(function () {
-		var prefix = '-webkit-';
-
-		var map_center = [-77.034136, 38.96];
-		var tile = d3.geo.tile()
-				.size([map_width, map_height]);
-
-		projection = d3.geo.mercator()
-			.scale(Math.pow(2, 19) / 2 / Math.PI)
-			.translate([-map_width / 2, -map_height / 2]); // just temporary
-
-		var tileProjection = d3.geo.mercator();
-
-		var tilePath = d3.geo.path()
-				.projection(tileProjection);
-
-		// in order to use the same projection zoom, need to translate
-		// the tile requests by projection(map_center)
-		// the translation is seen in translate(zoom.translate()) in
-		// the zoomed function
-		// 
-		// maybe try changing tileProjection, changing its center? this
-		// could be the most efficient route
-
-		// projection(map_center) is the only place the projection is used
-		var zoom = d3.behavior.zoom()
-				.scale(Math.pow(2, 19))
-				.scaleExtent([1 << 18, 1 << 23])
-				.translate(projection(map_center).map(function (x) { return -x; }))
-				.on("zoom", zoomed);
-
-		var map = d3.select(".map-container").append("div")
-				.attr("class", "map")
-				.style("width", map_width + "px")
-				.style("height", map_height + "px")
-				.call(zoom);
-
-		var layer = map.append("div")
-				.attr("class", "layer");
-
-		zoomed();
-
-		function zoomed () {
-			var tiles = tile
-					.scale(zoom.scale())
-					.translate(zoom.translate())();
-
-			projection
-					.scale(zoom.scale() / 2 / Math.PI)
-					.translate(zoom.translate());
-
-			var image = layer
-				.style(prefix + "transform", matrix3d(tiles.scale, tiles.translate))
-				.selectAll(".tile")
-				.data(tiles, function (d) { return d; });
-
-			image.exit()
-					.each(function (d) { this._xhr.abort(); })
-					.remove();
-
-			image.enter().append("svg")
-					.attr("class", "tile")
-					.style("left", function (d) { return d[0] * 256 + "px"; })
-					.style("top", function (d) { return d[1] * 256 + "px"; })
-					.each(function (d) {
-						var svg = d3.select(this);
-						this._xhr = d3.json("http://" + ["a", "b", "c"][(d[0] * 31 + d[1]) % 3] + ".tile.openstreetmap.us/vectiles-highroad/" + d[2] + "/" + d[0] + "/" + d[1] + ".json", function (error, json) {
-							var k = Math.pow(2, d[2]) * 256; // size of the world in pixels
-
-							tilePath.projection()
-									.translate([k / 2 - d[0] * 256, k / 2 - d[1] * 256]) // [0°,0°] in pixels
-									.scale(k / 2 / Math.PI);
-
-							svg.selectAll("path")
-									.data(json.features.sort(function (a, b) { return a.properties.sort_key - b.properties.sort_key; }))
-								.enter().append("path")
-									.attr("class", function (d) { return d.properties.kind; })
-									.attr("d", tilePath);
-						});
-					});
-		}
-
-		function matrix3d (scale, translate) {
-			var k = scale / 256, r = scale % 1 ? Number : Math.round;
-			return "matrix3d(" + [k, 0, 0, 0, 0, k, 0, 0, 0, 0, k, 0, r(translate[0] * scale), r(translate[1] * scale), 0, 1 ] + ")";
-		}
-	});
-
 	stationsFactory.get().then(function (data) {
 		/*
 			TO DO:
@@ -558,6 +470,129 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 			var scale = d3.event ? zoom.scale() : scale0;
 			scale = semanticZoom(scale / scale0);
 			return 'translate(' + xMercator(c[0]) + ',' + yMercator(c[1]) + ')scale(' + scale + ')';
+		}
+	});
+})
+
+.controller('TilesController', function ($scope, $q, stationsFactory ) {
+	var scatter_width = 500,
+			scatter_height = 500,
+			map_width = 500,
+			map_height = 500;
+
+	var map_center = [-77.034136, 38.96];
+	var tile = d3.geo.tile()
+			.size([map_width, map_height]);
+
+	var projection = d3.geo.mercator()
+		.scale(Math.pow(2, 19) / 2 / Math.PI)
+		.translate([-map_width / 2, -map_height / 2]); // just temporary
+
+	var tileProjection = d3.geo.mercator(),
+			tilePath = d3.geo.path()
+				.projection(tileProjection);
+
+	var zoom = d3.behavior.zoom()
+			.scale(projection.scale() * 2 * Math.PI)
+			.scaleExtent([1 << 18, 1 << 23])
+			.translate(projection(map_center).map(function (x) { return -x; }))
+			.on("zoom", zoomed);
+
+	var map = d3.select(".map-container").append("div")
+			.attr("class", "map")
+			.style("width", map_width + "px")
+			.style("height", map_height + "px")
+			.call(zoom);
+
+	var baselayer = map.append("div")
+			.attr("class", "layer");
+
+	zoomed();
+
+	function zoomed () {
+		var tiles = tile
+				.scale(zoom.scale())
+				.translate(zoom.translate())();
+
+		projection
+				.scale(zoom.scale() / 2 / Math.PI)
+				.translate(zoom.translate());
+
+		var image = baselayer
+			.style("-webkit-transform", matrix3d(tiles.scale, tiles.translate))
+			.selectAll(".tile")
+			.data(tiles, function (d) { return d; });
+
+		image.exit()
+				.each(function (d) { this._xhr.abort(); })
+				.remove();
+
+		image.enter().append("svg")
+				.attr("class", "tile")
+				.style("left", function (d) { return d[0] * 256 + "px"; })
+				.style("top", function (d) { return d[1] * 256 + "px"; })
+				.each(function (d) {
+					var svg = d3.select(this);
+					this._xhr = d3.json("http://" + ["a", "b", "c"][(d[0] * 31 + d[1]) % 3] + ".tile.openstreetmap.us/vectiles-highroad/" + d[2] + "/" + d[0] + "/" + d[1] + ".json", function (error, json) {
+						var k = Math.pow(2, d[2]) * 256; // size of the world in pixels
+
+						tilePath.projection()
+								.translate([k / 2 - d[0] * 256, k / 2 - d[1] * 256]) // [0°,0°] in pixels
+								.scale(k / 2 / Math.PI);
+
+						svg.selectAll("path")
+								.data(json.features.sort(function (a, b) { return a.properties.sort_key - b.properties.sort_key; }))
+							.enter().append("path")
+								.attr("class", function (d) { return d.properties.kind; })
+								.attr("d", tilePath);
+					});
+				});
+	}
+
+	function matrix3d (scale, translate) {
+		var k = scale / 256, r = scale % 1 ? Number : Math.round;
+		return "matrix3d(" + [k, 0, 0, 0, 0, k, 0, 0, 0, 0, k, 0, r(translate[0] * scale), r(translate[1] * scale), 0, 1 ] + ")";
+	}
+
+	// putting some circles on
+
+	stationsFactory.get().then(function (data) {
+		var stations = {},
+				stations_list = [];
+		for (var i = 0; i < data.data.length; i++) {
+			var x = data.data[i];
+			stations[x.id] = {
+				lng: x.lng,
+				lat: x.lat
+			};
+			stations_list.push({ id: x.id, lng: x.lng, lat: x.lat });			
+		}
+
+		var stationsLayer = map.append('div')
+					.attr('class', 'layer')
+					.attr('id', 'stations-layer'),
+				svg = stationsLayer.append('svg')
+					.attr('width', map_width)
+					.attr('height', map_height),
+				g = svg.append('g');
+
+		var circle = g.selectAll('circle')
+			.data(stations_list)
+			.enter().append('circle')
+			.attr('r', 3)
+			.attr('stroke', 'black')
+			.attr('stroke-width', '0.5px')
+			.attr('transform', transform);
+
+		zoom.on('zoom.stations', redraw);
+
+		function redraw () {
+			circle.attr('transform', transform);
+		}
+
+		function transform (d) {
+			var projected = projection([d.lng, d.lat]);
+			return 'translate(' + projected + ')';
 		}
 	});
 });
