@@ -27,6 +27,7 @@
 
 	<script type="text/javascript" src='static/js/factories.js'></script>
 	<script type="text/javascript" src='static/js/map-controller.js'></script>
+	<script type="text/javascript" src='static/js/new_controllers.js'></script>
 	<script type="text/javascript" src='static/js/charts.js'></script>
 	<script type="text/javascript" src='static/js/app.js'></script>
 
@@ -41,7 +42,7 @@
 	<div id='primary-container'>
 		<div id='main-tabs-container'>
 			<md-content class='md-padding'>
-				<md-tabs md-dynamic-height='false' md-selected='0'>
+				<md-tabs md-dynamic-height='false' md-selected='1'>
 					<md-tab label='one'>
 						<md-tab-label>
 							Rides Crossfilter (new)
@@ -89,25 +90,21 @@
 									</div>
 
 								</div>
-								<div class='map-container' ng-controller='TilesController'></div>
 							</div>
 						</md-tab-body>
 					</md-tab>
 
 					<md-tab label='three'>
 						<md-tab-label>
-							Streets Heatmap
+							New Rides Crossfilter (New New)
 						</md-tab-label>
 						<md-tab-body class='md-padding'>
-							<div id='photo-charts-container' ng-controller='PhotosCrossfilterController'>
-								<div id='photo-charts'>
-									<div id='photo-hour-chart' class='chart'>
-										<div>Hour</div>
-									</div>
-									<div id='photo-date-chart' class='chart'>
-										<div>Date</div>
-									</div>
+							<div id='charts-container' ng-controller='NewController'>
+								<div id='scatterplot' class='crossfilter-scatter'>
+									<svg />
 								</div>
+
+								<div class='map-container'></div>
 							</div>
 						</md-tab-body>
 					</md-tab>

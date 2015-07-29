@@ -1,5 +1,5 @@
 
-angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMaterial'])
+angular.module('mapApp', ['mapApp.factories', 'mapApp.newControllers', 'mapApp.mapController', 'ngMaterial'])
 
 .controller('MainController', function ($scope, $rootScope, $q, bikeRides, stationData, bikeDirections) {
 	return 0;
@@ -85,8 +85,8 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 			weather_charts,
 			weather_chart;
 
-	var scatter_elt = '#scatterplot > svg';
-	var map_elt = '#map-plot > svg'
+	var scatter_elt = '#crossfilter-custom-container #scatterplot > svg';
+	var map_elt = '#crossfilter-custom-container #map-plot > svg'
 	d3.select(scatter_elt)
 		.call(zoom)
 		.attr('width', scatter_width)
