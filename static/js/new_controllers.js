@@ -395,6 +395,11 @@ angular.module('mapApp.newControllers', [])
 			.data(ride_charts)
 			.each(function (chart) {
 				chart.on('brush', render_all).on('brushend', render_all);
+				// chart.on('brush', function () {
+				// 	scatter_chart_selection.each(function (sc) { render(sc.rerender); });
+				// }).on('brushend', function () {
+				// 	scatter_chart_selection.each(function (sc) { render(sc.rerender); });
+				// });
 			});
 
 		weather_chart_selection = d3.selectAll('#charts-container #weather-charts .crossfilter-chart')
@@ -422,8 +427,63 @@ angular.module('mapApp.newControllers', [])
 		ride_charts[0].dimension(hour).brushCallback(rerenderHexbins);
 		ride_charts[1].dimension(date).brushCallback(rerenderHexbins);
 
-		
-		
+		var g = d3.select(scatter_elt)
+			.insert('g', ':first-child')
+			.attr('class', 'hexbin')
+			.attr('width', scatter_width)
+			.attr('height', scatter_height);
+
+		var hexbin = d3.hexbin()
+			.size([scatter_width, scatter_height])
+			.radius(20)
+			.x(function (e) { return x_projection(e.lng); })
+			.y(function (e) { return y_projection(e.lat); });
+
+		// unused but this is how you use it
+		var r = d3.scale.linear()
+			.domain([0, 1])
+			.range([0, 1]);
+
+		function computeHexbins () {
+			var hexbins = hexbin(hex.top(Infinity));
+			// missing empty bins, add them back
+			var hex_hash = {};
+			hexbins.forEach(function (h) {
+				hex_hash[h.i + ',' + h.j] = 1;
+			});
+			hexbin.centers().forEach(function (c) {
+				if (!((c.i + ',' + c.j) in hex_hash)) {
+					var arr = [];
+					arr.i = c.i;
+					arr.j = c.j;
+					arr.x = c[0];
+					arr.y = c[1];
+					hexbins.push(arr);
+				}
+			});
+			return hexbins;
+		}
+
+		var hexagons = g.selectAll('path')
+			.data(computeHexbins())
+			.enter().append('path')
+			.attr('d', hexbin.hexagon(19.5))
+			.attr('transform', function (d) { return 'translate(' + d.x + ',' + d.y + ')'; })
+			.style('fill', 'black')
+			.style('opacity', function (d) {
+				return Math.min(d.length / 100, 1);
+			});
+
+		zoom.on('zoom.hexbin', rerenderHexbins);
+
+		function rerenderHexbins () {
+			hexagons = g.selectAll('path')
+				.data(computeHexbins(), function (d) { return d.i + "," + d.j; });
+			hexagons
+				.style('opacity', function (d) {
+					return 0.1, Math.min(d.length / 100, 1);
+				});
+		}
 	});
 
 })
