@@ -28,7 +28,6 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 		.center(map_center)
 		.translate([0, 0]);
 	var center = projection(map_center);
-	projection.translate([map_width / 2 - center[0] / 2, map_height / 2 - center[1] / 2]);
 	var scale0 = projection.scale() * 2 * Math.PI;
 
 	// local approximation to the Mercator projection
@@ -50,6 +49,8 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 	var zoom = d3.behavior.zoom()
 		.scale(scale0)
 		.scaleExtent([1 << 18, 1 << 23])
+		.translate([map_width / 2 - center[0] / 2, map_height / 2 - center[1] / 2])
+		// .translate([-map_width / 2, -map_height / 2])
 		.on("zoom", zoomHandler);
 
 	zoomHandler();
@@ -110,75 +111,89 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 		scatter_chart.each(function (sc) { render(sc.rerender); });
 	}
 
-	(function tileSetup () {
+	(function () {
+		var prefix = '-webkit-';
+
+		var map_center = [-77.034136, 38.96];
 		var tile = d3.geo.tile()
 				.size([map_width, map_height]);
+
+		projection = d3.geo.mercator()
+			.scale(Math.pow(2, 19) / 2 / Math.PI)
+			.translate([-map_width / 2, -map_height / 2]); // just temporary
 
 		var tileProjection = d3.geo.mercator();
 
 		var tilePath = d3.geo.path()
 				.projection(tileProjection);
 
-		var center = projection(map_center);
+		// in order to use the same projection zoom, need to translate
+		// the tile requests by projection(map_center)
+		// the translation is seen in translate(zoom.translate()) in
+		// the zoomed function
+		// 
+		// maybe try changing tileProjection, changing its center? this
+		// could be the most efficient route
 
+		// projection(map_center) is the only place the projection is used
 		var zoom = d3.behavior.zoom()
-			.scale(projection.scale() * 2 * Math.PI)
-			.scaleExtent([1 << 18, 1 << 23])
-			.translate([map_width / 2 - center[0], map_height / 2 - center[1]])
-			.on("zoom", zoomed);
+				.scale(Math.pow(2, 19))
+				.scaleExtent([1 << 18, 1 << 23])
+				.translate(projection(map_center).map(function (x) { return -x; }))
+				.on("zoom", zoomed);
 
 		var map = d3.select(".map-container").append("div")
-			.attr("class", "map")
-			.style("width", map_width + "px")
-			.style("height", map_height + "px")
-			.call(zoom);
+				.attr("class", "map")
+				.style("width", map_width + "px")
+				.style("height", map_height + "px")
+				.call(zoom);
 
 		var layer = map.append("div")
-			.attr("class", "layer");
+				.attr("class", "layer");
 
 		zoomed();
 
-		function zoomed() {
+		function zoomed () {
 			var tiles = tile
-				.scale(zoom.scale())
-				.translate(zoom.translate())();
+					.scale(zoom.scale())
+					.translate(zoom.translate())();
 
 			projection
-				.scale(zoom.scale() / 2 / Math.PI)
-				.translate(zoom.translate());
+					.scale(zoom.scale() / 2 / Math.PI)
+					.translate(zoom.translate());
 
 			var image = layer
-				.style("-webkit-transform", matrix3d(tiles.scale, tiles.translate))
+				.style(prefix + "transform", matrix3d(tiles.scale, tiles.translate))
 				.selectAll(".tile")
-				.data(tiles, function(d) { return d; });
+				.data(tiles, function (d) { return d; });
 
 			image.exit()
-				.each(function(d) { this._xhr.abort(); })
-				.remove();
+					.each(function (d) { this._xhr.abort(); })
+					.remove();
 
 			image.enter().append("svg")
-				.attr("class", "tile")
-				.style("left", function(d) { return d[0] * 256 + "px"; })
-				.style("top", function(d) { return d[1] * 256 + "px"; })
-				.each(function(d) {
-					var svg = d3.select(this);
-					this._xhr = d3.json("http://" + ["a", "b", "c"][(d[0] * 31 + d[1]) % 3] + ".tile.openstreetmap.us/vectiles-highroad/" + d[2] + "/" + d[0] + "/" + d[1] + ".json", function(error, json) {
-						var k = Math.pow(2, d[2]) * 256; // size of the world in pixels
+					.attr("class", "tile")
+					.style("left", function (d) { return d[0] * 256 + "px"; })
+					.style("top", function (d) { return d[1] * 256 + "px"; })
+					.each(function (d) {
+						var svg = d3.select(this);
+						this._xhr = d3.json("http://" + ["a", "b", "c"][(d[0] * 31 + d[1]) % 3] + ".tile.openstreetmap.us/vectiles-highroad/" + d[2] + "/" + d[0] + "/" + d[1] + ".json", function (error, json) {
+							var k = Math.pow(2, d[2]) * 256; // size of the world in pixels
 
-						tilePath.projection()
-								.translate([k / 2 - d[0] * 256, k / 2 - d[1] * 256]) // [0°,0°] in pixels
-								.scale(k / 2 / Math.PI);
+							tilePath.projection()
+									.translate([k / 2 - d[0] * 256, k / 2 - d[1] * 256]) // [0°,0°] in pixels
+									.scale(k / 2 / Math.PI);
 
-						svg.selectAll("path")
-								.data(json.features.sort(function(a, b) { return a.properties.sort_key - b.properties.sort_key; }))
-							.enter().append("path")
-								.attr("class", function(d) { return d.properties.kind; })
-								.attr("d", tilePath);
+							svg.selectAll("path")
+									.data(json.features.sort(function (a, b) { return a.properties.sort_key - b.properties.sort_key; }))
+								.enter().append("path")
+									.attr("class", function (d) { return d.properties.kind; })
+									.attr("d", tilePath);
+						});
 					});
-				});
 		}
 
-		function matrix3d(scale, translate) {
+		function matrix3d (scale, translate) {
 			var k = scale / 256, r = scale % 1 ? Number : Math.round;
 			return "matrix3d(" + [k, 0, 0, 0, 0, k, 0, 0, 0, 0, k, 0, r(translate[0] * scale), r(translate[1] * scale), 0, 1 ] + ")";
 		}
@@ -215,7 +230,6 @@ angular.module('mapApp', ['mapApp.factories', 'mapApp.mapController', 'ngMateria
 				.height(scatter_height)
 				.x(xMercator)
 				.y(yMercator)
-				// .projection(projection)
 				// sometimes you want attributes, like r, color, opacity, etc., to
 				// be based on absolute values, sometimes on relative values. this
 				// defines a scalar relative value metric, and its maximum and

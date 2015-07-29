@@ -230,3 +230,8 @@ md-content h1:first-child {
 	margin: 11px 0px 0px 11px;
 	z-index: -1;
 }
+
+
+.map-container .map {
+	border: 1px solid black;
+}

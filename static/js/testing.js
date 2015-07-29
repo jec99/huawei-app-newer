@@ -8,18 +8,7 @@ angular.module('testingApp', ['mapApp.factories'])
 	var map_radius = 0.25;
 	
 	var width = 600,
-			height = 600,
-			bounds = [
-				[map_center[0] - map_radius, map_center[1] - map_radius * Math.cos(map_center[1] / 180 * Math.PI)],
-				[map_center[0] + map_radius, map_center[1] + map_radius * Math.cos(map_center[1] / 180 * Math.PI)]
-			];
-
-	var xScatter = d3.scale.linear()
-			.domain([bounds[0][0], bounds[1][0]])
-			.range([0, width]),
-		yScatter = d3.scale.linear()
-			.domain([bounds[0][1], bounds[1][1]])
-			.range([width, 0])
+			height = 600;
 
 	var tile = d3.geo.tile()
 			.size([width, height]);
@@ -34,8 +23,6 @@ angular.module('testingApp', ['mapApp.factories'])
 			.projection(tileProjection);
 
 	var zoom = d3.behavior.zoom()
-			.x(xScatter)
-			.y(yScatter)
 			.scale(projection.scale() * 2 * Math.PI)
 			.scaleExtent([1 << 18, 1 << 23])
 			.translate(projection(map_center).map(function(x) { return -x; }))
