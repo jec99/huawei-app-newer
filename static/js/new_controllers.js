@@ -395,11 +395,6 @@ angular.module('mapApp.newControllers', [])
 			.data(ride_charts)
 			.each(function (chart) {
 				chart.on('brush', render_all).on('brushend', render_all);
-				// chart.on('brush', function () {
-				// 	scatter_chart_selection.each(function (sc) { render(sc.rerender); });
-				// }).on('brushend', function () {
-				// 	scatter_chart_selection.each(function (sc) { render(sc.rerender); });
-				// });
 			});
 
 		weather_chart_selection = d3.selectAll('#charts-container #weather-charts .crossfilter-chart')
