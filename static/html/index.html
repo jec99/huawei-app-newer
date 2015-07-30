@@ -13,7 +13,7 @@
 	<script type="text/javascript" src='static/js/topojson.js'></script>
 	<script type="text/javascript" src='static/js/d3-hexbin.js'></script>
 	<script type="text/javascript" src='static/js/cubehelix.js'></script>
-	<script type="text/javascript" src='static/js/simple-statistics.js'></script>
+	<script type="text/javascript" src='static/js/sigma.min.js'></script>
 
 	<script type="text/javascript" src='static/js/mapbox.js'></script>
 	<script type="text/javascript" src='static/js/heatmap.js'></script>
@@ -25,10 +25,11 @@
 	<script type='text/javascript' src="static/js/angular-aria.js"></script>
 	<script type="text/javascript" src="static/js/angular-material.js"></script>
 
+	<script type="text/javascript" src='static/js/charts.js'></script>
 	<script type="text/javascript" src='static/js/factories.js'></script>
 	<script type="text/javascript" src='static/js/map-controller.js'></script>
 	<script type="text/javascript" src='static/js/chart-controller.js'></script>
-	<script type="text/javascript" src='static/js/charts.js'></script>
+	<script type="text/javascript" src='static/js/graph-controller.js'></script>
 	<script type="text/javascript" src='static/js/app.js'></script>
 
 	<link rel="stylesheet" href="static/css/angular-material.css"/>
@@ -37,6 +38,7 @@
 	<link rel="stylesheet" type="text/css" href='static/css/mapbox.css'></link>
 	<link rel="stylesheet" type="text/css" href='static/css/main.css'></link>
 	<link rel="stylesheet" type="text/css" href='static/css/tiles.css'></link>
+	<link rel="stylesheet" type="text/css" href='static/css/graph.css'></link>
 </head>
 <body ng-controller='MainController'>
 	<div id='primary-container'>
@@ -93,7 +95,9 @@
 							Graph
 						</md-tab-label>
 						<md-tab-body class='md-padding'>
-							
+							<div id='graph-container' ng-controller='GraphController'>
+								<div id='sigma-graph'></div>
+							</div>
 						</md-tab-body>
 					</md-tab>
 

@@ -1,5 +1,10 @@
 
-angular.module('mapApp', ['mapApp.factories', 'mapApp.chartController', 'mapApp.mapController', 'ngMaterial'])
+angular.module('mapApp', [
+	'mapApp.factories',
+	'mapApp.chartController',
+	'mapApp.mapController',
+	'mapApp.graphController',
+	'ngMaterial'])
 
 .controller('MainController', function ($scope, $rootScope, $q, bikeRides, stationData, bikeDirections) {
 	return 0;
