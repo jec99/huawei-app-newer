@@ -22,12 +22,12 @@ function scatterPlot () {
 		zoom: null,
 		semanticZoom: function (arg) { return arg; },
 		dimension: null,
-		group: null,
+		groups: [],
 		points: null,
 		coordinates: null
 	};
 
-	var blacklist = ['zoom'];
+	var blacklist = ['zoom', 'groups'];
 
 	// real locals, not configs
 	var id = scatterPlot.id++,
@@ -74,26 +74,32 @@ function scatterPlot () {
 	}
 
 	chart.rerender = function () {
+		console.log(config.groups);
+		console.log(config.groups.length);
+
 		// in many cases the graph may be initialized before the data gets in,
 		// so we need to check if it's here before doing anything
 		var hash = {};
 		var max = -Infinity;
 		var min = Infinity;
-		if (config.group) {
-			hash = config.group.all().reduce(function (o, g) {
+		// initializing the hash
+		if (config.groups.length == 1) {
+			hash = config.groups[0].all().reduce(function (o, g) {
 				o[g.key] = g.value;
 				max = Math.max(max, config.relativeComparator(g.value));
 				min = Math.min(min, config.relativeComparator(g.value));
 				return o;
 			}, {});
+		} else if (config.groups.length > 1) {
+			for (var i = 0; i < config.groups.length; i++) {
+				config.groups[i].all().forEach(function (g) {
+					if (hash[g.key] === undefined)
+						hash[g.key] = [];
+					hash[g.key][i] = g.value;
+				});
+			}
 		}
 
-		// NOTE: max is the CURRENT maximum, with all filters applied,
-		// not a global maximum over all the data. may be confusing
-
-		// TO DO: figure out a way to have these depend on parameters
-		// from the group - in general the group values will be
-		// list of multiple values, used for color/opacity/etc
 		circle
 			.attr('r', function (d) {
 				return config.r(hash[d.id], max, min)
@@ -132,6 +138,18 @@ function scatterPlot () {
 		return chart;
 	}
 
+	chart.group = function (_) {
+		if (!arguments.length) {
+			return config.groups;
+		}
+		if (_ === null) {
+			config.groups = [];
+		} else {
+			config.groups.push(_);
+		}
+		return chart;
+	};
+
 	return chart;
 }
 
@@ -147,7 +165,7 @@ function barChart () {
 		barChart.id = 0;
 	}
 
-	var margin = {top: 10, right: 10, bottom: 20, left: 10},
+	var margin = {top: 20, right: 20, bottom: 20, left: 20},
 			x,
 			y = d3.scale.linear().range([100, 0]),
 			id = barChart.id++,
@@ -235,9 +253,6 @@ function barChart () {
 			var path = [];
 			for (var i = 0; i < groups.length; i++) {
 				var d = groups[i];
-				// this draws the bars based on the group
-				// must return an appropriate key and value
-				
 				path.push('M', x(d.key), ',', height, 'V', y(d.value), 'h' + barWidth + 'V', height);
 			}
 			return path.join('');
@@ -388,14 +403,14 @@ function barChart () {
 
 
 function categoricalChart () {
-	if (!categoricalChart.id) {
-		categoricalChart.id = 0;
+	if (!barChart.id) {
+		barChart.id = 0;
 	}
 
 	var margin = {top: 10, right: 10, bottom: 20, left: 10},
 			x,
 			y = d3.scale.linear().range([100, 0]),
-			id = categoricalChart.id++,
+			id = barChart.id++,
 			axis = d3.svg.axis().orient('bottom'),
 			brush = d3.svg.brush(),
 			dimension,

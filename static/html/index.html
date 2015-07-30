@@ -51,30 +51,43 @@
 						</md-tab-label>
 						<md-tab-body class='md-padding'>
 							<div id='charts-container' ng-controller='ChartsController'>
-								<div id='bike-ride-charts'>
-									<div id='hour-chart-container' class='crossfilter-chart-container'>
-										<div id='hour-chart' class='crossfilter-chart'></div>
-										<div class='chart-title'>Hour</div>
+								<div id='far-left-container'>
+									<div id='settings-container'>
+										<div class='radio-container'>
+											<md-radio-group ng-model='radio.value' ng-change='setScatterType()'>
+												<md-radio-button class='radio-button' value='subscription'>Subscription</md-radio-button>
+												<md-radio-button class='radio-button' value='direction'>Direction</md-radio-button>
+											</md-radio-group>
+										</div>
 									</div>
-									<div id='date-chart-container' class='crossfilter-chart-container'>
-										<div id='date-chart' class='crossfilter-chart'></div>
-										<div class='chart-title'>Date</div>
-									</div>
-									<div id='duration-chart-container' class='crossfilter-chart-container'>
-										<div id='duration-chart' class='crossfilter-chart'></div>
-										<div class='chart-title'>Duration</div>
-									</div>
-									<div id='subscribed-chart-container' class='crossfilter-chart-container'>
-										<div id='subscribed-chart' class='crossfilter-chart'></div>
-										<div class='chart-title'>Subscribed</div>
+
+									<div id='bike-ride-charts'>
+										<div id='hour-chart-container' class='crossfilter-chart-container'>
+											<div id='hour-chart' class='crossfilter-chart'></div>
+											<div class='chart-title'>Hour</div>
+										</div>
+										<div id='date-chart-container' class='crossfilter-chart-container'>
+											<div id='date-chart' class='crossfilter-chart'></div>
+											<div class='chart-title'>Date</div>
+										</div>
+										<div id='duration-chart-container' class='crossfilter-chart-container'>
+											<div id='duration-chart' class='crossfilter-chart'></div>
+											<div class='chart-title'>Duration</div>
+										</div>
+										<div id='subscribed-chart-container' class='crossfilter-chart-container'>
+											<div id='subscribed-chart' class='crossfilter-chart'></div>
+											<div class='chart-title'>Subscribed</div>
+										</div>
 									</div>
 								</div>
 
-								<div id='scatterplot' class='crossfilter-scatter'>
-									<svg />
-								</div>
+								<div id='windows-container'>
+									<div id='scatterplot' class='crossfilter-scatter'>
+										<svg />
+									</div>
 
-								<div class='map-container'></div>
+									<div class='map-container'></div>
+								</div>
 
 								<div id='weather-charts'>
 									<div id='temperature-chart-container' class='crossfilter-chart-container'>

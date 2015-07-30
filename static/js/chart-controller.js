@@ -24,6 +24,13 @@ angular.module('mapApp.chartController', [])
 			ride_chart_selection,
 			weather_chart_selection;
 
+	$scope.radio = {
+		value: 'subscription'
+	};
+
+	// to be set later.
+	$scope.setScatterType = function () {};
+
 	var projection = d3.geo.mercator()
 		.scale((1 << 19) / 2 / Math.PI)
 		.translate([-map_width / 2, -map_height / 2]);
@@ -157,20 +164,41 @@ angular.module('mapApp.chartController', [])
 		scatter_chart_selection.each(function (sc) { render(sc.rerender); });
 	}
 
+	// this is so we have almost-global color scheme access
+	var colors_s = d3.scale.cubehelix()
+		.domain([0, 0.5, 1])
+		.range([d3.hsl(240, .6, .3), d3.hsl(60, .6, 1), d3.hsl(-40, .6, .3)]);
+	var color_subscription = function (x) {
+		return colors_s(Math.pow((x + 1) / 2, 2));
+	};
+
+	function sigmoid (x, k) {
+		return 1 / (1 + Math.pow(Math.E, -k * x));
+	}
+	var shifted_sigmoid = function (x, k) {
+		return sigmoid(2 * x - 1, k);
+	};
+	var k = 3;
+	var min = shifted_sigmoid(0, k),
+			max = shifted_sigmoid(1, k);
+	var sigmoid_mod = function (x) {
+		return (shifted_sigmoid(x, k) - min) / (max - min);
+	};
+
+	var colors_d = d3.scale.cubehelix()
+		.domain([0, 0.5, 1])
+		.range([d3.hsl(0, .6, .3), d3.hsl(60, .6, 1), d3.hsl(130, .6, .3)]);
+	var color_direction = function (x) {
+		// exaggerating differences
+		return colors_d(sigmoid_mod(x));
+	}
+
 	stationsFactory.get().then(function (data) {
 		var stations = [];
 		for (var i = 0; i < data.data.length; i++) {
 			var x = data.data[i];
 			stations.push({ id: x.id, lng: x.lng, lat: x.lat });			
 		}
-
-		var colors = d3.scale.cubehelix()
-			.domain([0, 0.5, 1])
-			.range([d3.hsl(240, .6, .3), d3.hsl(60, .6, 1), d3.hsl(-40, .6, .3)]);
-
-		var get_color = function (x) {
-			return colors(Math.pow((x + 1) / 2, 2));
-		};
 
 		scatter_charts = [
 			scatterPlot()
@@ -187,12 +215,12 @@ angular.module('mapApp.chartController', [])
 				})
 				.r(function (v) {
 					if (v === undefined) return 1;
-					return Math.max(Math.pow(v.casual + v.subscribed, 1 / 2), 3) / 2;
+					return Math.pow(v.casual + v.subscribed, 1 / 2) / 2;
 				})
 				.opacity(function () { return 0.8; })
 				.color(function (v) {
-					if (v === undefined) return get_color(0.5);
-					return get_color((v.subscribed - v.casual) / (v.subscribed + v.casual));
+					if (v === undefined) return color_subscription(0.5);
+					return color_subscription((v.subscribed - v.casual) / (v.subscribed + v.casual));
 				})
 		]
 
@@ -299,7 +327,8 @@ angular.module('mapApp.chartController', [])
 				hour = rides.dimension(function (e) { return e.date.getHours() + e.date.getMinutes() / 60; }),
 				duration = rides.dimension(function (e) { return e.duration / 60; }),
 				subscribed = rides.dimension(function (e) { return e.subscribed; }),
-				start_station = rides.dimension(function (e) { return e.start_id; }),
+				start_ride = rides.dimension(function (e) { return e.start_id; }),
+				end_ride = rides.dimension(function (e) { return e.end_id; }),
 				temperature = rides.dimension(function (e) { return e.weather.temperature; }),
 				humidity = rides.dimension(function (e) { return e.weather.humidity; });
 
@@ -307,30 +336,101 @@ angular.module('mapApp.chartController', [])
 				hours = hour.group(Math.floor),
 				durations = duration.group(function (e) { return Math.floor(e / 5); }),
 				subscriptions = subscribed.group(),
-				start_stations = start_station.group()
+				start_rides_by_subscription = start_ride.group(),
+				start_rides = start_ride.group(),
+				end_rides = end_ride.group(),
 				temperatures = temperature.group(function (t) { return Math.floor(t / 2); }),
 				humidities = humidity.group(function (h) { return Math.floor(h / 5); });
 
-		start_stations.reduce(
-			function (p, v) {
-				p.subscribed += Number(v.subscribed);
-				p.casual += Number(!v.subscribed);
-				return p;
-			}, function (p, v) {
-				p.subscribed -= Number(v.subscribed);
-				p.casual -= Number(!v.subscribed);
-				return p;
-			}, function () {
-				return {
-					subscribed: 0,
-					casual: 0
-				}
-			}
-		);
+		var reduceAdd = function (p, v) {
+					p.subscribed += Number(v.subscribed);
+					p.casual += Number(!v.subscribed);
+					return p;
+				},
+				reduceRemove = function (p, v) {
+					p.subscribed -= Number(v.subscribed);
+					p.casual -= Number(!v.subscribed);
+					return p;
+				},
+				reduceInit = function () {
+					return {
+						subscribed: 0,
+						casual: 0
+					};
+				};
+
+		start_rides_by_subscription.reduce(reduceAdd, reduceRemove, reduceInit);
 
 		scatter_charts[0]
-			.dimension(start_station)
-			.group(start_stations);
+			.dimension(start_ride)
+			.group(start_rides_by_subscription);
+
+		$scope.setScatterType = function () {
+			// change the color, size, group used for the scatterplot
+			var temp,
+					group;
+			if ($scope.radio.value == 'subscription') {
+				scatter_charts[0]
+					.group(null)
+					.group(start_rides_by_subscription);
+				temp = scatterSubscription();
+			} else if ($scope.radio.value == 'direction') {
+				scatter_charts[0]
+					.group(null)
+					.group(start_rides)
+					.group(end_rides);
+				temp = scatterDirection();
+			}
+
+			scatter_charts[0]
+				.relativeComparator(temp[0])
+				.r(temp[1])
+				.opacity(temp[2])
+				.color(temp[3])
+				.rerender();
+		};
+
+		function scatterSubscription () {
+			var comparator = function (v) {
+					return v.subscribed - v.casual;
+				},
+				radius = function (v) {
+					if (v === undefined) return 1;
+					return Math.pow(v.casual + v.subscribed, 1 / 2) / 2;
+				},
+				opacity = function (v) {
+					return 0.8;
+				},
+				color = function (v) {
+					if (v === undefined) return color_subscription(0.5);
+					return color_subscription((v.subscribed - v.casual) / (v.subscribed + v.casual));
+				};
+			return [comparator, radius, opacity, color];
+		}
+
+		function num (x) {
+			return x === undefined ? 0 : +x;
+		}
+
+		function scatterDirection () {
+			var comparator = function (v) {
+					return 1;
+				},
+				radius = function (v) {
+					if (v === undefined) return 0;
+					return Math.pow(num(v[0]) + num(v[1]), 1 / 2) / 2;
+				},
+				opacity = function (v) {
+					return 0.8;
+				},
+				color = function (v) {
+					if (v === undefined) return color_direction(0.5);
+					// v[0] is start, v[1] is end
+					// so greener is more starts
+					return color_direction(num(v[0]) / (num(v[0]) + num(v[1])));
+				};
+			return [comparator, radius, opacity, color];
+		}
 
 		ride_charts = [
 			barChart()
