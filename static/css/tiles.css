@@ -72,6 +72,7 @@
 
 .tile .water,
 .tile .riverbank {
+  stroke-width: 0px;
   fill: #CFE6E6;
 }
 
