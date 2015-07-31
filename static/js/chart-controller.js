@@ -71,7 +71,14 @@ angular.module('mapApp.chartController', [])
 		.call(zoom);
 
 	var base_layer = tile_map.append('div')
-		.attr('class', 'layer');
+				.attr('id', 'base_layer')
+				.attr('class', 'layer'),
+			land_usage_layer = tile_map.append('div')
+				.attr('id', 'land_usage_layer')
+				.attr('class', 'layer'),
+			water_layer = tile_map.append('div')
+				.attr('id', 'water_layer')
+				.attr('class', 'layer');
 
 	zoomed();
 
@@ -99,12 +106,10 @@ angular.module('mapApp.chartController', [])
 		]);
 	}
 
-	function update_tiles () {
-		var tiles = tile
-			.scale(zoom.scale())
-			.translate(zoom.translate())();
+	function update_tiles_layer(layer, layer_name, tiles, kinds) {
+		// layer_name: vectiles-highroad, vectiles-land-usages, etc.
 
-		var image = base_layer
+		var image = layer
 			.style('-webkit-transform', matrix3d(tiles.scale, tiles.translate))
 			.selectAll('.tile')
 			.data(tiles, function (d) { return d; });
@@ -113,6 +118,7 @@ angular.module('mapApp.chartController', [])
 			.each(function (d) { this._xhr.abort(); })
 			.remove();
 
+		window.kinds = {};
 		image.enter().append('svg')
 			.attr('class', 'tile')
 			.style('left', function (d) { return d[0] * 256 + 'px'; })
@@ -121,7 +127,7 @@ angular.module('mapApp.chartController', [])
 				var svg = d3.select(this);
 
 				// TODO: refactor into a service
-				this._xhr = d3.json('http://' + ['a', 'b', 'c'][(d[0] * 31 + d[1]) % 3] + '.tile.openstreetmap.us/vectiles-highroad/' + d[2] + '/' + d[0] + '/' + d[1] + '.json', function (error, json) {
+				this._xhr = d3.json('http://' + ['a', 'b', 'c'][(d[0] * 31 + d[1]) % 3] + '.tile.openstreetmap.us/' + layer_name + '/' + d[2] + '/' + d[0] + '/' + d[1] + '.json', function (error, json) {
 					var k = Math.pow(2, d[2]) * 256; // size of the world in pixels
 
 					tile_path.projection()
@@ -129,12 +135,47 @@ angular.module('mapApp.chartController', [])
 							.scale(k / 2 / Math.PI);
 
 					svg.selectAll('path')
-							.data(json.features.sort(function (a, b) { return a.properties.sort_key - b.properties.sort_key; }))
+							.data(json.features
+								.filter(function (feat) {
+									return kinds !== undefined ? kinds[feat.properties.kind] !== undefined : true;
+								}).sort(function (a, b) {
+									return a.properties.sort_key - b.properties.sort_key;
+								}))
 						.enter().append('path')
 							.attr('class', function (d) { return d.properties.kind; })
 							.attr('d', tile_path);
 				});
 			});
+	}
+
+	function update_tiles () {
+		var tiles = tile
+			.scale(zoom.scale())
+			.translate(zoom.translate())();
+
+		var land_kinds = {
+			'college': true,
+			'university': true,
+			// 'school': true,
+			'park': true,
+			'cemetery': true,
+			// 'nature_reserve': true,
+			// 'grass': true,
+			// 'forest': true,
+			// 'wood': true,
+			// 'woods': true
+		};
+		var road_kinds = {
+			'highway': true,
+			'major_road': true,
+			'minor_road': true
+		};
+		var water_kinds = {
+			'riverbank': true,
+		};
+		update_tiles_layer(base_layer, 'vectiles-highroad', tiles, road_kinds);
+		update_tiles_layer(land_usage_layer, 'vectiles-land-usages', tiles, land_kinds);
+		update_tiles_layer(water_layer, 'vectiles-water-areas', tiles, water_kinds);
 	}
 
 	function matrix3d (scale, translate) {
@@ -234,7 +275,7 @@ angular.module('mapApp.chartController', [])
 
 		var subway_stations_layer = tile_map.append('div')
 					.attr('class', 'layer')
-					.attr('id', 'subway-stations-layer'),
+					.attr('id', 'subway_stations_layer'),
 				g = subway_stations_layer.append('svg')
 					.attr('width', map_width)
 					.attr('height', map_height)
@@ -243,8 +284,8 @@ angular.module('mapApp.chartController', [])
 		var circles = g.selectAll('circle')
 			.data(data.data)
 			.enter().append('circle')
-			.attr('r', 3)
-			.style('fill', '#536DFE')
+			.attr('r', 4)
+			.attr('class', 'subway-station')
 			.attr('transform', transform);
 
 		zoom.on('zoom.subway_stations', function () {
@@ -264,7 +305,7 @@ angular.module('mapApp.chartController', [])
 
 		var points_of_interest_layer = tile_map.append('div')
 					.attr('class', 'layer')
-					.attr('id', 'pois-layer'),
+					.attr('id', 'pois_layer'),
 				g = points_of_interest_layer.append('svg')
 					.attr('width', map_width)
 					.attr('height', map_height)
@@ -273,8 +314,8 @@ angular.module('mapApp.chartController', [])
 		var circles = g.selectAll('circle')
 			.data(data.data)
 			.enter().append('circle')
-			.attr('r', function (d) { return 7 / Math.pow(d.rank, 0.5); })
-			.style('fill', '#FF5252')
+			.attr('r', function (d) { return 10 / Math.pow(d.rank, 0.35); })
+			.attr('class', 'poi')
 			.attr('transform', transform);
 
 		zoom.on('zoom.locations', function () {

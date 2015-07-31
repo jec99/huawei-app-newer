@@ -74,9 +74,6 @@ function scatterPlot () {
 	}
 
 	chart.rerender = function () {
-		console.log(config.groups);
-		console.log(config.groups.length);
-
 		// in many cases the graph may be initialized before the data gets in,
 		// so we need to check if it's here before doing anything
 		var hash = {};

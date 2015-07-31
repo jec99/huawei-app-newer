@@ -2,10 +2,31 @@
 .map {
   position: relative;
   overflow: hidden;
+  background-color: #FEF9E9;
 }
 
 .layer {
   position: absolute;
+}
+
+#base_layer {
+  z-index: 0;
+}
+
+#land_usage_layer {
+  z-index: 2;
+}
+
+#water_layer {
+  z-index: 1;
+}
+
+#pois_layer {
+  z-index: 4;
+}
+
+#subway_stations_layer {
+ z-index: 3;
 }
 
 .tile {
@@ -17,10 +38,43 @@
 .tile path {
   fill: none;
   stroke: #000;
+  stroke-width: 0.5px;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
 
 .tile .major_road { stroke: #776; }
 .tile .minor_road { stroke: #ccb; }
-.tile .highway { stroke: #3C3C33; stroke-width: 1px; }
+.tile .highway { stroke: #888; stroke-width: 1px; }
+
+.tile .park,
+.tile .cemetery {
+  fill: #D7F0B0;
+  stroke-width: 0px;
+}
+
+.tile .college,
+.tile .school,
+.tile .university {
+  stroke-width: 0px;
+  /*fill: #D0A19C;*/
+  fill: #FBDFBC;
+}
+
+.tile .water,
+.tile .riverbank {
+  fill: #CFE6E6;
+}
+
+.subway-station {
+  fill: #FF7800;
+  stroke-width: 0.5px;
+  stroke: #000;
+}
+
+.poi {
+  fill: #FE4365;
+  stroke-width: 0.5px;
+  stroke: #000;
+};
+
