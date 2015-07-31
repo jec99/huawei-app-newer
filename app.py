@@ -504,13 +504,14 @@ def get_block_groups_handler():
 @app.route('/subway_stations')
 def get_subway_stations():
 	query = """
-		select id, ST_X(geom), ST_Y(geom) from subway_stations
+		select id, ST_X(geom), ST_Y(geom), name from subway_stations
 	"""
 	stations = db_session.execute(query).fetchall()
 	ret = [{
 		'id': s[0],
 		'lng': s[1],
-		'lat': s[2]
+		'lat': s[2],
+		'name': s[3]
 	} for s in stations]
 	return jsonify({'data': ret})
 
@@ -518,14 +519,15 @@ def get_subway_stations():
 @app.route('/points_of_interest')
 def get_points_of_interest():
 	query = """
-		select id, rank, ST_X(geom), ST_Y(geom) from locations
+		select id, rank, ST_X(geom), ST_Y(geom), name from locations
 	"""
 	locations = db_session.execute(query).fetchall()
 	ret = [{
 		'id': s[0],
 		'rank': s[1],
 		'lng': s[2],
-		'lat': s[3]
+		'lat': s[3],
+		'name': s[4]
 	} for s in locations]
 	return jsonify({'data': ret})
 

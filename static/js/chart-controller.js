@@ -143,7 +143,10 @@ angular.module('mapApp.chartController', [])
 								}))
 						.enter().append('path')
 							.attr('class', function (d) { return d.properties.kind; })
+							.classed('tile-feature', true)
+							.attr('name', function (d) { return d.properties.name; })
 							.attr('d', tile_path);
+
 				});
 			});
 	}
@@ -288,6 +291,14 @@ angular.module('mapApp.chartController', [])
 			.attr('class', 'subway-station')
 			.attr('transform', transform);
 
+		$('svg circle.subway-station').tipsy({
+			gravity: 'w',
+			html: true,
+			title: function () {
+				return this.__data__.name;
+			}
+		});
+
 		zoom.on('zoom.subway_stations', function () {
 			circles.attr('transform', transform);
 		});
@@ -317,6 +328,15 @@ angular.module('mapApp.chartController', [])
 			.attr('r', function (d) { return 10 / Math.pow(d.rank, 0.35); })
 			.attr('class', 'poi')
 			.attr('transform', transform);
+
+		// adding tooltips
+		$('svg circle.poi').tipsy({
+			gravity: 'w',
+			html: true,
+			title: function () {
+				return this.__data__.name;
+			}
+		});
 
 		zoom.on('zoom.locations', function () {
 			circles.attr('transform', transform);

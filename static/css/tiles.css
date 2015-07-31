@@ -11,22 +11,27 @@
 
 #base_layer {
   z-index: 0;
+  pointer-events: none;
 }
 
 #land_usage_layer {
   z-index: 2;
+  pointer-events: none;
 }
 
 #water_layer {
   z-index: 1;
+  pointer-events: none;
 }
 
 #pois_layer {
   z-index: 4;
+  pointer-events: none;
 }
 
 #subway_stations_layer {
  z-index: 3;
+ pointer-events: none;
 }
 
 .tile {
@@ -61,6 +66,10 @@
   fill: #FBDFBC;
 }
 
+.tile-feature {
+  pointer-events: all !important;
+}
+
 .tile .water,
 .tile .riverbank {
   fill: #CFE6E6;
@@ -70,11 +79,13 @@
   fill: #FF7800;
   stroke-width: 0.5px;
   stroke: #000;
+  pointer-events: all;
 }
 
 .poi {
   fill: #FE4365;
   stroke-width: 0.5px;
   stroke: #000;
+  pointer-events: all;
 };
 

@@ -80,6 +80,7 @@ function scatterPlot () {
 		var max = -Infinity;
 		var min = Infinity;
 		// initializing the hash
+		// note: different behavior for 1 and 2+ groups
 		if (config.groups.length == 1) {
 			hash = config.groups[0].all().reduce(function (o, g) {
 				o[g.key] = g.value;
