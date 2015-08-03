@@ -49,36 +49,6 @@ angular.module('mapApp.factories', [])
 	};
 })
 
-.factory('bikeRidesSummary', function ($q, $http, $timeout) {
-	var rideData = null;
-	var oldX;
-	var oldY;
-
-	return {
-		get: function (x, y) {
-			var deferred = $q.defer();
-			if (x == oldX && y == oldY && rideData !== null) {
-				$timeout(function () {
-					deferred.resolve(rideData);
-				}, 20);
-			} else {
-				dataUrl = '/rides_summary' + (x && y ? '/' + x + '/' + y : '');
-				$http.get(dataUrl)
-				.success(function (data, status, headers, response) {
-					oldX = x;
-					olyY = y;
-					rideData = data;
-					deferred.resolve(data);
-				}).error(function (data, status, headers, response) {
-					deferred.reject(status);
-				});
-			}
-
-			return deferred.promise;
-		}
-	};
-})
-
 .factory('bikeDirections', function ($q, $http) {
 	return {
 		get: function (x, y) {

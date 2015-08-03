@@ -57,7 +57,5 @@ angular.module('mapApp.graphController', [])
 				edgesPowRatio: 0.5
 			}
 		});
-
-
 	});
 });

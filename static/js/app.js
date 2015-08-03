@@ -6,11 +6,11 @@ angular.module('mapApp', [
 	'mapApp.graphController',
 	'ngMaterial'])
 
-.controller('MainController', function ($scope, $rootScope, $q, bikeRides, stationData, bikeDirections) {
+.controller('MainController', function ($scope, $rootScope, $q) {
 	return 0;
 });
 
-function container () {
+function unusedCode () {
 	// use heatmaps to visualize the results of the PageRank algorithm
 	// maybe do that thing where we have the layers stacked in 3d space
 

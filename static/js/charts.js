@@ -582,4 +582,3 @@ function categoricalChart () {
 
 	return d3.rebind(chart, brush, 'on');
 }
-

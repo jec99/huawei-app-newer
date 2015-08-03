@@ -159,14 +159,8 @@ angular.module('mapApp.chartController', [])
 		var land_kinds = {
 			'college': true,
 			'university': true,
-			// 'school': true,
 			'park': true,
 			'cemetery': true,
-			// 'nature_reserve': true,
-			// 'grass': true,
-			// 'forest': true,
-			// 'wood': true,
-			// 'woods': true
 		};
 		var road_kinds = {
 			'highway': true,

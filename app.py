@@ -87,52 +87,6 @@ def get_rides_specific(start, end):
 	return Response(json.dumps(rets), mimetype='application/json')
 
 
-def ride_statistics(rides_raw):
-	rets = {}
-	rides = [{
-		'subscribed': e.subscribed,
-		'hour': e.start_date.hour,
-		'weekday': e.start_date.weekday(),
-		'yearweek': e.start_date.timetuple().tm_yday / 7
-	} for e in rides_raw]
-
-	rets['day_by_hour'] = {
-		'subscribed': [len([e for e in rides if e['hour'] == i and e['subscribed']]) for i in range(24)],
-		'casual': [len([e for e in rides if e['hour'] == i and not e['subscribed']]) for i in range(24)],
-		'total': [len([e for e in rides if e['hour'] == i]) for i in range(24)]
-	}
-
-	rets['week_by_day'] = {
-		'casual': [len([e for e in rides if e['weekday'] == i and not e['subscribed']]) for i in range(7)],
-		'subscribed': [len([e for e in rides if e['weekday'] == i and e['subscribed']]) for i in range(7)],
-		'total': [len([e for e in rides if e['weekday'] == i]) for i in range(7)]
-	}
-
-	rets['year_by_week'] = {
-		'subscribed': [len([e for e in rides if e['yearweek'] == i and e['subscribed']]) for i in range(52)],
-		'casual': [len([e for e in rides if e['yearweek'] == i and not e['subscribed']]) for i in range(52)],
-		'total': [len([e for e in rides if e['yearweek'] == i]) for i in range(52)]
-	}
-
-	return rets
-
-
-@app.route('/rides_summary')
-def get_rides_data_all():
-	q = db_session.query(BikeRide).all()
-	return jsonify(ride_statistics(q))
-
-
-@app.route('/rides_summary/<int:start>/<int:end>')
-def get_rides_data(start, end):
-	# day x hour, week x day, year x week data, by subscription type
-	q = db_session.query(BikeRide).filter(
-		(BikeRide.start_station_id == start) & (BikeRide.end_station_id == end)
-	)
-
-	return jsonify(ride_statistics(q))
-
-
 def merge_linestrings(ls):
 	# takes an ordered list of GeoJSON linestrings forming a path and makes them into
 	# one long linestring. maybe the linestring is oriented "backwards"
@@ -552,11 +506,6 @@ def get_weather():
 		'humidity': w[3]
 	} for w in weather]
 	return jsonify({'data': ret})
-
-
-@app.route('/testing')
-def testing():
-	return send_from_directory('static/html', 'testing.html')
 
 
 if __name__ == '__main__':
